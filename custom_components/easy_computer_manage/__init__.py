@@ -61,6 +61,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         schema=WAKE_ON_LAN_SEND_MAGIC_PACKET_SCHEMA,
     )
 
-    hass.config_entries.async_setup_platforms(entry, ["switch"])
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(
+            entry, "switch"
+        )
+    )
 
     return True
