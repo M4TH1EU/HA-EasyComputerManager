@@ -13,7 +13,7 @@ import wakeonlan
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_BROADCAST_ADDRESS, CONF_BROADCAST_PORT, CONF_MAC
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import HomeAssistant, ServiceCall
 from .const import DOMAIN, SERVICE_SEND_MAGIC_PACKET
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,7 +30,6 @@ WAKE_ON_LAN_SEND_MAGIC_PACKET_SCHEMA = vol.Schema(
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the wake on LAN component."""
 
-    @callback
     async def send_magic_packet(call: ServiceCall) -> None:
         """Send magic packet to wake up a device."""
         mac_address = call.data.get(CONF_MAC)
