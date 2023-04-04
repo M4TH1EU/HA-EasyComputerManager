@@ -48,7 +48,8 @@ class Hub:
     async def test_connection(self) -> bool:
         """Test connectivity to the computer is OK."""
         try:
-            return utils.test_connection(utils.create_ssh_connection(self._host, self._username, self._password, self._port))
+            return utils.test_connection(
+                utils.create_ssh_connection(self._host, self._username, self._password, self._port))
         except AuthenticationException:
             return False
 
