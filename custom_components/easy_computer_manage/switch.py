@@ -249,4 +249,6 @@ class ComputerSwitch(SwitchEntity):
                 "operating_system_version": utils.get_operating_system_version(
                     self._connection
                 ),
+                "mac_address": self._mac_address,
+                "ip_address": self._host,
             }
