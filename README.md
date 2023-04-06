@@ -1,6 +1,9 @@
 # Easy Computer Manage
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
+
+![img.png](.images/example1.png)
+
 ## Configure Linux-running computer to be managed by Home Assistant.
 We need to allow your user to run specific sudo command without asking for password. To do this, we need to edit sudoers file. To do this, run the following command in terminal: ``visudo``
 
