@@ -235,12 +235,12 @@ class ComputerSwitch(SwitchEntity):
 
                 try:
                     self._connection.open()
-                except NoValidConnectionsError and SSHException as error:
-                    _LOGGER.error("Could not connect to %s: %s", self._host, error)
-                    self._state = False
-                    return
                 except AuthenticationException as error:
                     _LOGGER.error("Could not authenticate to %s: %s", self._host, error)
+                    self._state = False
+                    return
+                except Exception as error:
+                    _LOGGER.error("Could not connect to %s: %s", self._host, error)
                     self._state = False
                     return
 
