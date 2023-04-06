@@ -41,3 +41,9 @@ put_computer_to_sleep:
   target:
     device:
       integration: easy_computer_manage
+restart_computer:
+  name: Restart
+  description: Restart the computer.
+  target:
+    device:
+      integration: easy_computer_manage

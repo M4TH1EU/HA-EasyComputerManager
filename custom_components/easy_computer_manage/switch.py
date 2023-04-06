@@ -9,12 +9,11 @@ from typing import Any
 
 import voluptuous as vol
 import wakeonlan
-from paramiko.ssh_exception import NoValidConnectionsError, SSHException, AuthenticationException
-
 from homeassistant.components.switch import (
     PLATFORM_SCHEMA as PARENT_PLATFORM_SCHEMA,
     SwitchEntity,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_BROADCAST_ADDRESS,
     CONF_BROADCAST_PORT,
@@ -32,10 +31,11 @@ from homeassistant.helpers import (
     entity_platform,
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from paramiko.ssh_exception import AuthenticationException
+
 from . import utils
 from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_TO_SLEEP, \
-    SERVICE_START_COMPUTER_TO_WINDOWS
-from homeassistant.config_entries import ConfigEntry
+    SERVICE_START_COMPUTER_TO_WINDOWS, RESTART_COMPUTER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -107,6 +107,11 @@ async def async_setup_entry(
         SERVICE_START_COMPUTER_TO_WINDOWS,
         {},
         SERVICE_START_COMPUTER_TO_WINDOWS,
+    )
+    platform.async_register_entity_service(
+        RESTART_COMPUTER,
+        {},
+        RESTART_COMPUTER,
     )
 
 
@@ -197,18 +202,29 @@ class ComputerSwitch(SwitchEntity):
 
         if self._dualboot:
             # Wait for the computer to boot using a dedicated thread to avoid blocking the main thread
-
-            self._hass.loop.create_task(self.restart_computer_to_windows_when_on())
+            self._hass.loop.create_task(self.service_restart_to_windows_from_linux())
 
         else:
             _LOGGER.error("This computer is not running a dualboot system.")
 
-    async def restart_computer_to_windows_when_on(self) -> None:
+    async def service_restart_to_windows_from_linux(self) -> None:
         """Method to be run in a separate thread to wait for the computer to boot and then reboot to Windows."""
         while not self.is_on:
             await asyncio.sleep(3)
 
         await utils.restart_to_windows_from_linux(self._connection)
+
+    def restart_computer(self) -> None:
+        """Restart the computer using appropriate restart command based on running OS and/or distro."""
+
+        # TODO: check for default grub entry and adapt accordingly
+        if self._dualboot and not utils.is_unix_system(connection=self._connection):
+            utils.restart_system(self._connection)
+
+            # Wait for the computer to boot using a dedicated thread to avoid blocking the main thread
+            self.restart_to_windows_from_linux()
+        else:
+            utils.restart_system(self._connection)
 
     def update(self) -> None:
         """Ping the computer to see if it is online and update the state."""
