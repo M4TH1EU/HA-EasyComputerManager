@@ -35,7 +35,7 @@ from paramiko.ssh_exception import AuthenticationException
 
 from . import utils
 from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_TO_SLEEP, \
-    SERVICE_START_COMPUTER_TO_WINDOWS, RESTART_COMPUTER
+    SERVICE_START_COMPUTER_TO_WINDOWS, RESTART_COMPUTER, SERVICE_RESTART_TO_LINUX_FROM_WINDOWS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,6 +97,11 @@ async def async_setup_entry(
         SERVICE_RESTART_TO_WINDOWS_FROM_LINUX,
         {},
         SERVICE_RESTART_TO_WINDOWS_FROM_LINUX,
+    )
+    platform.async_register_entity_service(
+        SERVICE_RESTART_TO_LINUX_FROM_WINDOWS,
+        {},
+        SERVICE_RESTART_TO_LINUX_FROM_WINDOWS,
     )
     platform.async_register_entity_service(
         SERVICE_PUT_COMPUTER_TO_SLEEP,
@@ -189,6 +194,15 @@ class ComputerSwitch(SwitchEntity):
 
         if self._dualboot:
             utils.restart_to_windows_from_linux(self._connection)
+        else:
+            _LOGGER.error("This computer is not running a dualboot system.")
+
+    def restart_to_linux_from_windows(self) -> None:
+        """Restart the computer to Linux from a running Windows by setting grub-reboot and restarting."""
+
+        if self._dualboot:
+            # TODO: check for default grub entry and adapt accordingly
+            utils.restart_system(self._connection)
         else:
             _LOGGER.error("This computer is not running a dualboot system.")
 
