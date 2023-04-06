@@ -198,12 +198,12 @@ class ComputerSwitch(SwitchEntity):
         if self._dualboot:
             # Wait for the computer to boot using a dedicated thread to avoid blocking the main thread
 
-            self._hass.loop.create_task(self.reboot_computer_to_windows_when_on())
+            self._hass.loop.create_task(self.restart_computer_to_windows_when_on())
 
         else:
             _LOGGER.error("This computer is not running a dualboot system.")
 
-    async def reboot_computer_to_windows_when_on(self) -> None:
+    async def restart_computer_to_windows_when_on(self) -> None:
         """Method to be run in a separate thread to wait for the computer to boot and then reboot to Windows."""
         while not self.is_on:
             await asyncio.sleep(3)
