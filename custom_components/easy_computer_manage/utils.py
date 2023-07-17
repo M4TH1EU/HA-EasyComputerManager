@@ -2,7 +2,9 @@ import logging
 
 import fabric2
 from fabric2 import Connection
+
 _LOGGER = logging.getLogger(__name__)
+
 
 # _LOGGER.setLevel(logging.DEBUG)
 
@@ -21,7 +23,7 @@ def create_ssh_connection(host: str, username: str, password: str, port=22):
         config=conf
     )
 
-    _LOGGER.info("CONNECTED SSH")
+    _LOGGER.info("Successfully created SSH connection to %s using username %s", host, username)
 
     return connection
 
@@ -80,7 +82,7 @@ def shutdown_system(connection: Connection, is_unix=None):
                 # Try a third method using systemctl command
                 result = connection.run("sudo systemctl poweroff")
                 if result.return_code != 0:
-                    _LOGGER.error("Cannot restart system, all methods failed.")
+                    _LOGGER.error("Cannot shutdown system running at %s, all methods failed.", connection.host)
 
     else:
         # First method using shutdown command
@@ -89,7 +91,7 @@ def shutdown_system(connection: Connection, is_unix=None):
             # Try a second method using init command
             result = connection.run("wmic os where Primary=TRUE call Shutdown")
             if result.return_code != 0:
-                _LOGGER.error("Cannot restart system, all methods failed.")
+                _LOGGER.error("Cannot shutdown system running at %s, all methods failed.", connection.host)
 
     connection.close()
 
@@ -110,7 +112,7 @@ def restart_system(connection: Connection, is_unix=None):
                 # Try a third method using systemctl command
                 result = connection.run("sudo systemctl reboot")
                 if result.return_code != 0:
-                    _LOGGER.error("Cannot restart system, all methods failed.")
+                    _LOGGER.error("Cannot restart system running at %s, all methods failed.", connection.host)
     else:
         # First method using shutdown command
         result = connection.run("shutdown /r /t 0")
@@ -118,7 +120,7 @@ def restart_system(connection: Connection, is_unix=None):
             # Try a second method using wmic command
             result = connection.run("wmic os where Primary=TRUE call Reboot")
             if result.return_code != 0:
-                _LOGGER.error("Cannot restart system, all methods failed.")
+                _LOGGER.error("Cannot restart system running at %s, all methods failed.", connection.host)
 
 
 def sleep_system(connection: Connection, is_unix=None):
@@ -134,7 +136,7 @@ def sleep_system(connection: Connection, is_unix=None):
             # Try a second method using pm-suspend command
             result = connection.run("sudo pm-suspend")
             if result.return_code != 0:
-                _LOGGER.error("Cannot restart system, all methods failed.")
+                _LOGGER.error("Cannot put system running at %s to sleep, all methods failed.", connection.host)
     else:
         # First method using shutdown command
         result = connection.run("shutdown /h /t 0")
@@ -142,7 +144,7 @@ def sleep_system(connection: Connection, is_unix=None):
             # Try a second method using rundll32 command
             result = connection.run("rundll32.exe powrprof.dll,SetSuspendState Sleep")
             if result.return_code != 0:
-                _LOGGER.error("Cannot restart system, all methods failed.")
+                _LOGGER.error("Cannot put system running at %s to sleep, all methods failed.", connection.host)
 
 
 def get_windows_entry_in_grub(connection: Connection):
@@ -157,16 +159,17 @@ def get_windows_entry_in_grub(connection: Connection):
     else:
         result = connection.run("sudo awk -F \"'\" '/windows/ {print $2}' /boot/grub2/grub.cfg")
         if result.return_code == 0:
-            _LOGGER.debug("Found windows entry in grub2 : " + result.stdout.strip())
+            _LOGGER.debug("Successfully found Windows Grub entry (%s) for system running at %s.", result.stdout.strip(),
+                          connection.host)
         else:
-            _LOGGER.error("Cannot find windows entry in grub")
+            _LOGGER.error("Could not find Windows entry on computer with address %s.")
             return None
 
     # Check if the entry is valid
     if result.stdout.strip() != "":
         return result.stdout.strip()
     else:
-        _LOGGER.error("Cannot find windows entry in grub")
+        _LOGGER.error("Could not find Windows entry on computer with address %s.")
         return None
 
 
@@ -188,6 +191,9 @@ def restart_to_windows_from_linux(connection: Connection):
                 _LOGGER.info("Rebooting to Windows")
                 restart_system(connection)
             else:
-                _LOGGER.error("Cannot restart system to windows from linux, all methods failed.")
+                _LOGGER.error("Could not restart system running on %s to Windows from Linux, all methods failed.",
+                              connection.host)
     else:
-        _LOGGER.error("Cannot restart to Windows from Linux, system is not Linux/Unix")
+        _LOGGER.error(
+            "Could not restart system running on %s to Windows from Linux, system does not appear to be a Linux-based OS.",
+            connection.host)

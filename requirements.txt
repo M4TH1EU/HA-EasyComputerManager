@@ -1,0 +1,5 @@
+fabric2~=3.1.0
+paramiko~=3.2.0
+voluptuous~=0.13.1
+wakeonlan~=3.0.0
+homeassistant~=2023.7.2

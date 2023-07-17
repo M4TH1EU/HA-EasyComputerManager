@@ -168,7 +168,7 @@ class ComputerSwitch(SwitchEntity):
         if self._broadcast_port is not None:
             service_kwargs["port"] = self._broadcast_port
 
-        _LOGGER.info(
+        _LOGGER.debug(
             "Send magic packet to mac %s (broadcast: %s, port: %s)",
             self._mac_address,
             self._broadcast_address,
@@ -195,7 +195,10 @@ class ComputerSwitch(SwitchEntity):
         if self._dualboot:
             utils.restart_to_windows_from_linux(self._connection)
         else:
-            _LOGGER.error("This computer is not running a dualboot system.")
+            _LOGGER.error(
+                "The computer with the IP address %s is not running a dualboot system or hasn't been configured "
+                "correctly in the UI.",
+                self._host)
 
     def restart_to_linux_from_windows(self) -> None:
         """Restart the computer to Linux from a running Windows by setting grub-reboot and restarting."""
@@ -204,7 +207,10 @@ class ComputerSwitch(SwitchEntity):
             # TODO: check for default grub entry and adapt accordingly
             utils.restart_system(self._connection)
         else:
-            _LOGGER.error("This computer is not running a dualboot system.")
+            _LOGGER.error(
+                "The computer with the IP address %s is not running a dualboot system or hasn't been configured "
+                "correctly in the UI.",
+                self._host)
 
     def put_computer_to_sleep(self) -> None:
         """Put the computer to sleep using appropriate sleep command based on running OS and/or distro."""
@@ -219,7 +225,10 @@ class ComputerSwitch(SwitchEntity):
             self._hass.loop.create_task(self.service_restart_to_windows_from_linux())
 
         else:
-            _LOGGER.error("This computer is not running a dualboot system.")
+            _LOGGER.error(
+                "The computer with the IP address %s is not running a dualboot system or hasn't been configured "
+                "correctly in the UI.",
+                self._host)
 
     async def service_restart_to_windows_from_linux(self) -> None:
         """Method to be run in a separate thread to wait for the computer to boot and then reboot to Windows."""
@@ -256,7 +265,7 @@ class ComputerSwitch(SwitchEntity):
         # Update the state attributes and the connection only if the computer is on
         if self._state:
             if not utils.test_connection(self._connection):
-                _LOGGER.info("RENEWING SSH CONNECTION")
+                _LOGGER.info("Renewing SSH connection to %s using username %s", self._host, self._username)
 
                 if self._connection is not None:
                     self._connection.close()
@@ -266,11 +275,12 @@ class ComputerSwitch(SwitchEntity):
                 try:
                     self._connection.open()
                 except AuthenticationException as error:
-                    _LOGGER.error("Could not authenticate to %s: %s", self._host, error)
+                    _LOGGER.error("Could not authenticate to %s using username %s : %s", self._host, self._username,
+                                  error)
                     self._state = False
                     return
                 except Exception as error:
-                    _LOGGER.error("Could not connect to %s: %s", self._host, error)
+                    _LOGGER.error("Could not connect to %s using username %s : %s", self._host, self._username, error)
                     self._state = False
                     return
 
