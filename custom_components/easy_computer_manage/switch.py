@@ -281,6 +281,14 @@ class ComputerSwitch(SwitchEntity):
                     return
                 except Exception as error:
                     _LOGGER.error("Could not connect to %s using username %s : %s", self._host, self._username, error)
+
+                    # Check if the error is due to timeout
+                    if "timed out" in str(error):
+                        _LOGGER.warning(
+                            "Computer at %s does not respond to the SSH request. Possibles causes : might be offline, "
+                            "the firewall is blocking the SSH port or the SSH server is offline and/or misconfigured.",
+                            self._host)
+
                     self._state = False
                     return
 
