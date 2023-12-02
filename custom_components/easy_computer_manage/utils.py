@@ -48,9 +48,14 @@ def get_operating_system_version(connection: Connection, is_unix=None):
         is_unix = is_unix_system(connection)
 
     if is_unix:
-        return connection.run(
-            "lsb_release -a | awk '/Description/ {print $2, $3, $4}'"
-        ).stdout
+        result = connection.run(
+            "awk -F'=' '/^NAME=|^VERSION=/{gsub(/\"/, \"\", $2); printf $2\" \"}\' /etc/os-release && echo").stdout
+        if result == "":
+            result = connection.run(
+                "lsb_release -a | awk '/Description/ {print $2, $3, $4}'"
+            ).stdout
+
+        return result
     else:
         return connection.run(
             'for /f "tokens=1 delims=|" %i in (\'wmic os get Name ^| findstr /B /C:"Microsoft"\') do @echo %i'
