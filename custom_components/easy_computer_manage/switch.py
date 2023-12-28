@@ -22,7 +22,7 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_PASSWORD,
     CONF_PORT,
-    CONF_USERNAME,
+    CONF_USERNAME, CONF_ENTITY_ID,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
@@ -56,6 +56,12 @@ PLATFORM_SCHEMA = PARENT_PLATFORM_SCHEMA.extend(
         vol.Required(CONF_USERNAME, default="root"): cv.string,
         vol.Required(CONF_PASSWORD, default="root"): cv.string,
         vol.Optional(CONF_PORT, default=22): cv.string,
+    }
+)
+SERVICE_CHANGE_MONITORS_CONFIG_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_ENTITY_ID): cv.entity_id,
+        vol.Required("monitors_config"): dict,
     }
 )
 
@@ -121,7 +127,7 @@ async def async_setup_entry(
     )
     platform.async_register_entity_service(
         SERVICE_CHANGE_MONITORS_CONFIG,
-        {},
+        SERVICE_CHANGE_MONITORS_CONFIG_SCHEMA,
         SERVICE_CHANGE_MONITORS_CONFIG,
     )
 
@@ -255,9 +261,10 @@ class ComputerSwitch(SwitchEntity):
         else:
             utils.restart_system(self._connection)
 
-    def change_monitors_config(self, yaml_config: str) -> None:
+    def change_monitors_config(self, **kwargs) -> None:
         """Change the monitors configuration using a YAML config file."""
-        utils.change_monitors_config(self._connection, yaml_config)
+        if kwargs["monitors_config"] is not None:
+            utils.change_monitors_config(self._connection, kwargs["monitors_config"])
 
     def update(self) -> None:
         """Ping the computer to see if it is online and update the state."""

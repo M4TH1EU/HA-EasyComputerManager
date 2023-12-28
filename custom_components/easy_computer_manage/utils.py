@@ -206,7 +206,7 @@ def restart_to_windows_from_linux(connection: Connection):
             connection.host)
 
 
-def change_monitors_config(connection: Connection, monitors_config: str):
+def change_monitors_config(connection: Connection, monitors_config: dict):
     """From a YAML config, changes the monitors configuration on the host, only works on Linux and Gnome (for now)."""
     # TODO: Add support for Windows
 
