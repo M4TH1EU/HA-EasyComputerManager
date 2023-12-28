@@ -1,6 +1,8 @@
 import logging
+import re
 
 import fabric2
+import yaml
 from fabric2 import Connection
 
 _LOGGER = logging.getLogger(__name__)
@@ -202,3 +204,74 @@ def restart_to_windows_from_linux(connection: Connection):
         _LOGGER.error(
             "Could not restart system running on %s to Windows from Linux, system does not appear to be a Linux-based OS.",
             connection.host)
+
+
+def change_monitors_config(connection: Connection, monitors_config: str):
+    """From a YAML config, changes the monitors configuration on the host, only works on Linux and Gnome (for now)."""
+    # TODO: Add support for Windows
+
+    if is_unix_system(connection):
+        command_parts = ["gnome-monitor-config", "set"]
+
+        # Convert str to dict (yaml)
+        monitors_config = yaml.safe_load(monitors_config)
+
+        for monitor, settings in monitors_config.get('monitors', {}).items():
+            if settings.get('enabled', False):
+                if 'primary' in settings and settings['primary']:
+                    command_parts.append(f'-LpM {monitor}')
+                else:
+                    command_parts.append(f'-LM {monitor}')
+
+                if 'position' in settings:
+                    command_parts.append(f'-x {settings["position"][0]} -y {settings["position"][1]}')
+
+                if 'mode' in settings:
+                    command_parts.append(f'-m {settings["mode"]}')
+
+                if 'scale' in settings:
+                    command_parts.append(f'-s {settings["scale"]}')
+
+                if 'transform' in settings:
+                    command_parts.append(f'-t {settings["transform"]}')
+
+        command = ' '.join(command_parts)
+
+        _LOGGER.debug("Running command: %s", command)
+        result = connection.run(command)
+
+        if result.return_code == 0:
+            _LOGGER.info("Successfully changed monitors config on system running on %s.", connection.host)
+        else:
+            _LOGGER.error("Could not change monitors config on system running on %s", connection.host)
+            # TODO : add useful debug info
+    else:
+        _LOGGER.error("Not implemented yet.")
+
+
+def parse_gnome_monitor_config(output):
+    # SHOULD NOT BE USED YET, STILL IN DEVELOPMENT
+    """Parse the output of the gnome-monitor-config command to get the current monitor configuration."""
+
+    monitors = []
+    current_monitor = None
+
+    for line in output.split('\n'):
+        monitor_match = re.match(r'^Monitor \[ (.+?) \] (ON|OFF)$', line)
+        if monitor_match:
+            if current_monitor:
+                monitors.append(current_monitor)
+            source, status = monitor_match.groups()
+            current_monitor = {'source': source, 'status': status, 'names': [], 'resolutions': []}
+        elif current_monitor:
+            display_name_match = re.match(r'^\s+display-name: (.+)$', line)
+            resolution_match = re.match(r'^\s+(\d+x\d+@\d+(?:\.\d+)?).*$', line)
+            if display_name_match:
+                current_monitor['names'].append(display_name_match.group(1).replace('"', ''))
+            elif resolution_match:
+                current_monitor['resolutions'].append(resolution_match.group(1))
+
+    if current_monitor:
+        monitors.append(current_monitor)
+
+    return monitors

@@ -53,3 +53,16 @@ restart_computer:
   target:
     device:
       integration: easy_computer_manage
+change_monitors_config:
+  name: Change monitors config
+  description: Change monitors config.
+  fields:
+    monitors_config:
+      name: Monitors config
+      description: Monitors config.
+      required: true
+      selector:
+        text:
+  target:
+    device:
+      integration: easy_computer_manage

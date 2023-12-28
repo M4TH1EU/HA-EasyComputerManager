@@ -35,7 +35,8 @@ from paramiko.ssh_exception import AuthenticationException
 
 from . import utils
 from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_TO_SLEEP, \
-    SERVICE_START_COMPUTER_TO_WINDOWS, RESTART_COMPUTER, SERVICE_RESTART_TO_LINUX_FROM_WINDOWS
+    SERVICE_START_COMPUTER_TO_WINDOWS, SERVICE_RESTART_COMPUTER, SERVICE_RESTART_TO_LINUX_FROM_WINDOWS, \
+    SERVICE_CHANGE_MONITORS_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,9 +115,14 @@ async def async_setup_entry(
         SERVICE_START_COMPUTER_TO_WINDOWS,
     )
     platform.async_register_entity_service(
-        RESTART_COMPUTER,
+        SERVICE_RESTART_COMPUTER,
         {},
-        RESTART_COMPUTER,
+        SERVICE_RESTART_COMPUTER,
+    )
+    platform.async_register_entity_service(
+        SERVICE_CHANGE_MONITORS_CONFIG,
+        {},
+        SERVICE_CHANGE_MONITORS_CONFIG,
     )
 
 
@@ -248,6 +254,10 @@ class ComputerSwitch(SwitchEntity):
             self.restart_to_windows_from_linux()
         else:
             utils.restart_system(self._connection)
+
+    def change_monitors_config(self, yaml_config: str) -> None:
+        """Change the monitors configuration using a YAML config file."""
+        utils.change_monitors_config(self._connection, yaml_config)
 
     def update(self) -> None:
         """Ping the computer to see if it is online and update the state."""
