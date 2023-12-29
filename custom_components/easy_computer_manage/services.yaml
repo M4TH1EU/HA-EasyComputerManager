@@ -61,6 +61,7 @@ change_monitors_config:
       name: Entity ID
       description: Entity ID of the device to change monitors config.
       required: true
+      example: switch.my_computer
       selector:
         entity:
           integration: easy_computer_manage
@@ -69,5 +70,13 @@ change_monitors_config:
       name: Monitors config
       description: Monitors config.
       required: true
+      example: |
+        HDMI-1:
+          enabled: true
+          primary: true
+          position: [ 0, 0 ]
+          mode: 3840x2160@120.000
+          transform: normal
+          scale: 2
       selector:
         object:
