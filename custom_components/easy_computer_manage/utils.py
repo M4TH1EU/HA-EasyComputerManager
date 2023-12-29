@@ -2,7 +2,6 @@ import logging
 import re
 
 import fabric2
-import yaml
 from fabric2 import Connection
 
 _LOGGER = logging.getLogger(__name__)
@@ -213,10 +212,7 @@ def change_monitors_config(connection: Connection, monitors_config: dict):
     if is_unix_system(connection):
         command_parts = ["gnome-monitor-config", "set"]
 
-        # Convert str to dict (yaml)
-        monitors_config = yaml.safe_load(monitors_config)
-
-        for monitor, settings in monitors_config.get('monitors', {}).items():
+        for monitor, settings in monitors_config.items():
             if settings.get('enabled', False):
                 if 'primary' in settings and settings['primary']:
                     command_parts.append(f'-LpM {monitor}')
