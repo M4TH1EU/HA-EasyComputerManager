@@ -1,4 +1,4 @@
-"""The Easy Dualboot Computer Manage integration."""
+"""The Easy Dualboot Computer Manager integration."""
 
 # Some code is from the official wake_on_lan integration
 

@@ -28,31 +28,31 @@ restart_to_windows_from_linux:
   description: Restart the computer to Windows when running Linux using Grub.
   target:
     device:
-      integration: easy_computer_manage
+      integration: easy_computer_manager
 restart_to_linux_from_windows:
   name: Restart to Linux from Windows
   description: Restart the computer to Linux when running Windows.
   target:
     device:
-      integration: easy_computer_manage
+      integration: easy_computer_manager
 start_computer_to_windows:
   name: Start computer to Windows
   description: Start the computer directly Windows (boots to Linux, set grub reboot, then boots to Windows).
   target:
     device:
-      integration: easy_computer_manage
+      integration: easy_computer_manager
 put_computer_to_sleep:
   name: Put computer to sleep
   description: Put the computer to sleep.
   target:
     device:
-      integration: easy_computer_manage
+      integration: easy_computer_manager
 restart_computer:
   name: Restart
   description: Restart the computer.
   target:
     device:
-      integration: easy_computer_manage
+      integration: easy_computer_manager
 change_monitors_config:
   name: Change monitors config
   description: Change monitors config.
@@ -64,7 +64,7 @@ change_monitors_config:
       example: switch.my_computer
       selector:
         entity:
-          integration: easy_computer_manage
+          integration: easy_computer_manager
           domain: switch
     monitors_config:
       name: Monitors config

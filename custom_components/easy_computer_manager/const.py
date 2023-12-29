@@ -1,6 +1,6 @@
-"""Constants for the Easy Computer Manage integration."""
+"""Constants for the Easy Computer Manager integration."""
 
-DOMAIN = "easy_computer_manage"
+DOMAIN = "easy_computer_manager"
 SERVICE_SEND_MAGIC_PACKET = "send_magic_packet"
 SERVICE_RESTART_TO_WINDOWS_FROM_LINUX = "restart_to_windows_from_linux"
 SERVICE_RESTART_TO_LINUX_FROM_WINDOWS = "restart_to_linux_from_windows"

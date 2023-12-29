@@ -1,4 +1,4 @@
-"""Config flow for Easy Computer Manage integration."""
+"""Config flow for Easy Computer Manager integration."""
 from __future__ import annotations
 
 import logging

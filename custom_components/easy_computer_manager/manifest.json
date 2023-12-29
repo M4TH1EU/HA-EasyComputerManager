@@ -1,8 +1,8 @@
 {
-  "domain": "easy_computer_manage",
-  "name": "Easy Dualboot Computer Manage",
+  "domain": "easy_computer_manager",
+  "name": "Easy Dualboot Computer Manager",
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/easy_computer_manage",
+  "documentation": "https://www.home-assistant.io/integrations/easy_computer_manager",
   "requirements": [
     "wakeonlan==2.1.0",
     "fabric2==2.7.1"
