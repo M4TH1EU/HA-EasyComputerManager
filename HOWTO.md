@@ -9,25 +9,25 @@ Send a 'magic packet' to wake up a device with 'Wake-On-LAN' capabilities.
 ### Fields
 
 - `mac`
-  - **Name:** MAC address
-  - **Description:** MAC address of the device to wake up.
-  - **Required:** true
-  - **Example:** "aa:bb:cc:dd:ee:ff"
-  - **Input:** text
+    - **Name:** MAC address
+    - **Description:** MAC address of the device to wake up.
+    - **Required:** true
+    - **Example:** "aa:bb:cc:dd:ee:ff"
+    - **Input:** text
 
 - `broadcast_address`
-  - **Name:** Broadcast address
-  - **Description:** Broadcast IP where to send the magic packet.
-  - **Example:** 192.168.255.255
-  - **Input:** text
+    - **Name:** Broadcast address
+    - **Description:** Broadcast IP where to send the magic packet.
+    - **Example:** 192.168.255.255
+    - **Input:** text
 
 - `broadcast_port`
-  - **Name:** Broadcast port
-  - **Description:** Port where to send the magic packet.
-  - **Default:** 9
-  - **Input:** number
-    - **Min:** 1
-    - **Max:** 65535
+    - **Name:** Broadcast port
+    - **Description:** Port where to send the magic packet.
+    - **Default:** 9
+    - **Input:** number
+        - **Min:** 1
+        - **Max:** 65535
 
 ## `restart_to_windows_from_linux`
 
@@ -88,18 +88,26 @@ Change monitors config.
 ### Fields
 
 - `monitors_config`
-  - **Name:** Monitors config
-  - **Description:** Monitors config.
-  - **Required:** true
-  - **Selector:** text
-  - **Example:** 
-    ```yaml
-    monitors:
+    - **Name:** Monitors config
+    - **Description:** Monitors config.
+    - **Required:** true
+    - **Selector:** object (yaml)
+    - **Example:**
+      ```yaml
+      # Tip: You can use the command `gnome-monitor-config list` or `xrandr` to your monitors names and resolutions.
       HDMI-1:
         enabled: true
         primary: true
-        position: [0, 0]
+        position: [ 0, 0 ]
         mode: 3840x2160@120.000
         transform: normal
         scale: 2
-    ```
+      ```
+  
+
+- `entity_id`
+    - **Name:** Entity ID
+    - **Description:** Entity ID of the device to change the monitors config.
+    - **Required:** true
+    - **Example:** "switch.my_computer"
+    - **Device Integration:** easy_computer_manage
