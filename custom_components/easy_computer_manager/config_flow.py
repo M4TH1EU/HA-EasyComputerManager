@@ -7,6 +7,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
+
 from paramiko.ssh_exception import AuthenticationException
 
 from . import utils
@@ -48,8 +49,7 @@ class Hub:
     async def test_connection(self) -> bool:
         """Test connectivity to the computer is OK."""
         try:
-            return utils.test_connection(
-                utils.create_ssh_connection(self._host, self._username, self._password, self._port))
+            return utils.test_connection(utils.create_ssh_connection(self._host, self._username, self._password, self._port))
         except AuthenticationException:
             return False
 
@@ -61,10 +61,9 @@ async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     if len(data["host"]) < 3:
         raise InvalidHost
 
-    hub = Hub(hass, data["host"], data["username"], data["password"], data["port"])
+    hub = Hub(hass, **data)
 
-    result = await hub.test_connection()
-    if not result:
+    if not await hub.test_connection():
         raise CannotConnect
 
     return {"title": data["host"]}
@@ -81,23 +80,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 info = await validate_input(self.hass, user_input)
-
                 return self.async_create_entry(title=info["title"], data=user_input)
-            except AuthenticationException:
-                errors["host"] = "cannot_connect"
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidHost:
-                errors["host"] = "cannot_connect"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
+            except (AuthenticationException, CannotConnect, InvalidHost) as ex:
+                errors["base"] = str(ex)
+            except Exception as ex:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception: %s", ex)
                 errors["base"] = "unknown"
 
-        # If there is no user input or there were errors, show the form again, including any errors that were found
-        # with the input.
-        return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=errors
-        )
+        return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA, errors=errors)
 
 
 class CannotConnect(exceptions.HomeAssistantError):

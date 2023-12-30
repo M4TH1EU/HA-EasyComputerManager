@@ -1,9 +1,8 @@
 """The Easy Dualboot Computer Manager integration."""
 
-# Some code is from the official wake_on_lan integration
+# Some snippets of code are from the official wake_on_lan integration (inspiration for this custom component)
 
 from __future__ import annotations
-
 import logging
 from functools import partial
 
@@ -28,10 +27,10 @@ WAKE_ON_LAN_SEND_MAGIC_PACKET_SCHEMA = vol.Schema(
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up the wake on LAN component."""
+    """Set up the Easy Dualboot Computer Manager integration."""
 
     async def send_magic_packet(call: ServiceCall) -> None:
-        """Send magic packet to wake up a device."""
+        """Send a magic packet to wake up a device."""
         mac_address = call.data.get(CONF_MAC)
         broadcast_address = call.data.get(CONF_BROADCAST_ADDRESS)
         broadcast_port = call.data.get(CONF_BROADCAST_PORT)
@@ -43,7 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             service_kwargs["port"] = broadcast_port
 
         _LOGGER.info(
-            "Send magic packet to mac %s (broadcast: %s, port: %s)",
+            "Sending magic packet to MAC %s (broadcast: %s, port: %s)",
             mac_address,
             broadcast_address,
             broadcast_port,
@@ -70,7 +69,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
+    """Unload the Easy Dualboot Computer Manager integration."""
     return await hass.config_entries.async_forward_entry_unload(
         entry, "switch"
     )
