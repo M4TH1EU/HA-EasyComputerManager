@@ -56,16 +56,11 @@ restart_computer:
 change_monitors_config:
   name: Change monitors config
   description: Change monitors config.
+  target:
+    entity:
+      integration: easy_computer_manager
+      domain: switch
   fields:
-    entity_id:
-      name: Entity ID
-      description: Entity ID of the device to change monitors config.
-      required: true
-      example: switch.my_computer
-      selector:
-        entity:
-          integration: easy_computer_manager
-          domain: switch
     monitors_config:
       name: Monitors config
       description: Monitors config.

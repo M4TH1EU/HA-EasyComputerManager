@@ -22,14 +22,15 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_PASSWORD,
     CONF_PORT,
-    CONF_USERNAME, CONF_ENTITY_ID,
-)
+    CONF_USERNAME, )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import (
     config_validation as cv,
     device_registry as dr,
     entity_platform,
 )
+from homeassistant.helpers.config_validation import make_entity_service_schema
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from paramiko.ssh_exception import AuthenticationException
 
@@ -56,12 +57,6 @@ PLATFORM_SCHEMA = PARENT_PLATFORM_SCHEMA.extend(
         vol.Required(CONF_USERNAME, default="root"): cv.string,
         vol.Required(CONF_PASSWORD, default="root"): cv.string,
         vol.Optional(CONF_PORT, default=22): cv.string,
-    }
-)
-SERVICE_CHANGE_MONITORS_CONFIG_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_ENTITY_ID): cv.entity_id,
-        vol.Required("monitors_config"): dict,
     }
 )
 
@@ -127,7 +122,9 @@ async def async_setup_entry(
     )
     platform.async_register_entity_service(
         SERVICE_CHANGE_MONITORS_CONFIG,
-        SERVICE_CHANGE_MONITORS_CONFIG_SCHEMA,
+        make_entity_service_schema(
+            {vol.Required("monitors_config"): dict}
+        ),
         SERVICE_CHANGE_MONITORS_CONFIG,
     )
 
@@ -261,10 +258,12 @@ class ComputerSwitch(SwitchEntity):
         else:
             utils.restart_system(self._connection)
 
-    def change_monitors_config(self, **kwargs) -> None:
+    def change_monitors_config(self, monitors_config: dict | None = None) -> None:
         """Change the monitors configuration using a YAML config file."""
-        if kwargs["monitors_config"] is not None:
-            utils.change_monitors_config(self._connection, kwargs["monitors_config"])
+        if monitors_config is not None and len(monitors_config) > 0:
+            utils.change_monitors_config(self._connection, monitors_config)
+        else:
+            raise HomeAssistantError("The monitors config is empty.")
 
     def update(self) -> None:
         """Ping the computer to see if it is online and update the state."""
