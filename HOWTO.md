@@ -95,20 +95,35 @@ Change monitors config.
     - **Name:** Monitors config
     - **Description:** Monitors config.
     - **Required:** true
-    - **Selector:** object (yaml)
-    - **Example:**
-      ```yaml
-      # Tip: You can use the command `gnome-monitor-config list` or `xrandr` to your monitors names and resolutions.
-      HDMI-1:
-        enabled: true
-        primary: true
-        position: [ 0, 0 ]
-        mode: 3840x2160@120.000
-        transform: normal
-        scale: 2
-      ```
+        - **Selector:** object (yaml)
+            - **Example:**
+              ```yaml
+              # Tip: You can use the command `gnome-monitor-config list` or `xrandr` to your monitors names and resolutions.
+              HDMI-1:
+                enabled: true
+                primary: true
+                position: [ 0, 0 ]
+                mode: 3840x2160@120.000
+                transform: normal
+                scale: 2
+              ```
 
-
+            - **Example for Node-RED(JSON):**
+              ```json
+              // Example of the data expression of a service call node in Node-RED.
+              {
+                "monitors_config": {
+                  "HDMI-1": {
+                    "enabled": true,
+                    "primary": true,
+                    "position": [0, 0],
+                    "mode": "3840x2160@120.000",
+                    "transform": "normal",
+                    "scale": 2
+                  }
+                }
+              }
+              ```
 
 ## `steam_big_picture`
 
@@ -128,6 +143,6 @@ Start/stop Steam in Big Picture mode or go back to Steam desktop UI.
     - **Required:** true
     - **Selector:** select
     - **Options:**
-      - **start**: Start Steam in Big Picture mode.
-      - **stop**: Stop Steam in Big Picture mode.
-      - **exit**: Go back to Steam desktop UI.
+        - **start**: Start Steam in Big Picture mode.
+        - **stop**: Stop Steam in Big Picture mode.
+        - **exit**: Go back to Steam desktop UI.
