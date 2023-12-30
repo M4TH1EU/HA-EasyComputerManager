@@ -75,3 +75,25 @@ change_monitors_config:
           scale: 2
       selector:
         object:
+steam_big_picture:
+  name: Start/stop Steam Big Picture
+  description: Start/stop Steam Big Picture.
+  target:
+    entity:
+      integration: easy_computer_manager
+      domain: switch
+  fields:
+    action:
+      name: Action
+      description: Choose whether to start/stop Steam Big Picture or go back to the desktop Steam UI.
+      required: true
+      example: "start"
+      selector:
+        select:
+          options:
+            - label: Start
+              value: start
+            - label: Stop
+              value: stop
+            - label: Exit and go back to the desktop Steam UI
+              value: exit

@@ -317,3 +317,36 @@ def parse_gnome_monitor_config(output):
         monitors.append(current_monitor)
 
     return monitors
+
+
+def steam_big_picture(connection: Connection, action: str):
+    """Controls Steam in Big Picture mode on the host."""
+
+    _LOGGER.debug(f"Running Steam Big Picture action {action} on system running at {connection.host}.")
+
+    result = None
+    match action:
+        case "start":
+            if is_unix_system(connection):
+                result = connection.run("export WAYLAND_DISPLAY=wayland-0; export DISPLAY=:0; steam -bigpicture &")
+            else:
+                result = connection.run("start steam://open/bigpicture")
+        case "stop":
+            if is_unix_system(connection):
+                result = connection.run("export WAYLAND_DISPLAY=wayland-0; export DISPLAY=:0; steam -shutdown &")
+            else:
+                # TODO: check for different Steam install paths
+                result = connection.run("C:\\Program Files (x86)\\Steam\\steam.exe -shutdown")
+        case "exit":
+            if is_unix_system(connection):
+                # TODO: find a way to exit Steam Big Picture
+                pass
+            else:
+                # TODO: need to test (thx @MasterHidra https://www.reddit.com/r/Steam/comments/5c9l20/comment/k5fmb3k)
+                result = connection.run("nircmd win close title \"Steam Big Picture Mode\"")
+        case _:
+            raise HomeAssistantError(
+                f"Invalid action {action} for Steam Big Picture on system running at {connection.host}.")
+
+    if result is None or result.return_code != 0:
+        raise HomeAssistantError(f"Could not {action} Steam Big Picture on system running at {connection.host}.")

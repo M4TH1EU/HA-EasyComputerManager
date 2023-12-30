@@ -85,6 +85,10 @@ Restart the computer.
 
 Change monitors config.
 
+### Target
+
+- **Device Integration:** easy_computer_manage
+
 ### Fields
 
 - `monitors_config`
@@ -103,11 +107,27 @@ Change monitors config.
         transform: normal
         scale: 2
       ```
-  
 
-- `entity_id`
-    - **Name:** Entity ID
-    - **Description:** Entity ID of the device to change the monitors config.
+
+
+## `steam_big_picture`
+
+### Description
+
+Start/stop Steam in Big Picture mode or go back to Steam desktop UI.
+
+### Target
+
+- **Device Integration:** easy_computer_manage
+
+### Fields
+
+- `action`
+    - **Name:** Action
+    - **Description:** Action to perform.
     - **Required:** true
-    - **Example:** "switch.my_computer"
-    - **Device Integration:** easy_computer_manage
+    - **Selector:** select
+    - **Options:**
+      - **start**: Start Steam in Big Picture mode.
+      - **stop**: Stop Steam in Big Picture mode.
+      - **exit**: Go back to Steam desktop UI.
