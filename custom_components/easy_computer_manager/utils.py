@@ -409,6 +409,12 @@ def change_audio_config(connection: Connection, volume: int, mute: bool, input_d
                     return device['name']
             return user_device
 
+        # Set default sink and source if not specified
+        if not output_device:
+            output_device = "@DEFAULT_SINK@"
+        if not input_device:
+            input_device = "@DEFAULT_SOURCE@"
+
         # Set default sink if specified
         if output_device and output_device != "@DEFAULT_SINK@":
             output_device = get_device_id('sinks', output_device)
