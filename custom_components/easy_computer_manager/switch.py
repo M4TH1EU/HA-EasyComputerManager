@@ -37,7 +37,7 @@ from paramiko.ssh_exception import AuthenticationException
 from . import utils
 from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_TO_SLEEP, \
     SERVICE_START_COMPUTER_TO_WINDOWS, SERVICE_RESTART_COMPUTER, SERVICE_RESTART_TO_LINUX_FROM_WINDOWS, \
-    SERVICE_CHANGE_MONITORS_CONFIG, SERVICE_STEAM_BIG_PICTURE
+    SERVICE_CHANGE_MONITORS_CONFIG, SERVICE_STEAM_BIG_PICTURE, SERVICE_CHANGE_AUDIO_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,19 +96,20 @@ async def async_setup_entry(
 
     platform = entity_platform.async_get_current_platform()
 
-    services = [SERVICE_RESTART_TO_WINDOWS_FROM_LINUX,
-                SERVICE_RESTART_TO_LINUX_FROM_WINDOWS,
-                SERVICE_PUT_COMPUTER_TO_SLEEP,
-                SERVICE_START_COMPUTER_TO_WINDOWS,
-                SERVICE_RESTART_COMPUTER]
+    basic_services = [SERVICE_RESTART_TO_WINDOWS_FROM_LINUX,
+                      SERVICE_RESTART_TO_LINUX_FROM_WINDOWS,
+                      SERVICE_PUT_COMPUTER_TO_SLEEP,
+                      SERVICE_START_COMPUTER_TO_WINDOWS,
+                      SERVICE_RESTART_COMPUTER]
 
-    for service in services:
+    for service in basic_services:
         platform.async_register_entity_service(
             service,
             {},
             service,
         )
 
+    # Register the service to change the monitors configuration
     platform.async_register_entity_service(
         SERVICE_CHANGE_MONITORS_CONFIG,
         make_entity_service_schema(
@@ -116,12 +117,26 @@ async def async_setup_entry(
         ),
         SERVICE_CHANGE_MONITORS_CONFIG,
     )
+
+    # Register the service to control Steam Big Picture mode
     platform.async_register_entity_service(
         SERVICE_STEAM_BIG_PICTURE,
         make_entity_service_schema(
             {vol.Required("action"): str}
         ),
         SERVICE_STEAM_BIG_PICTURE,
+    )
+
+    # Register the service to change the audio configuration
+    platform.async_register_entity_service(
+        SERVICE_CHANGE_AUDIO_CONFIG,
+        make_entity_service_schema(
+            {vol.Optional("volume"): int,
+             vol.Optional("mute"): bool,
+             vol.Optional("input_device"): str,
+             vol.Optional("output_device"): str}
+        ),
+        SERVICE_CHANGE_AUDIO_CONFIG,
     )
 
 
@@ -268,6 +283,10 @@ class ComputerSwitch(SwitchEntity):
             utils.steam_big_picture(self._connection, action)
         else:
             raise HomeAssistantError("You must specify an action.")
+
+    def change_audio_config(self, volume: int, mute: bool, input_device: str, output_device: str) -> None:
+        """Change the audio configuration using a YAML config file."""
+        utils.change_audio_config(self._connection, volume, mute, input_device, output_device)
 
     def update(self) -> None:
         """Ping the computer to see if it is online and update the state."""

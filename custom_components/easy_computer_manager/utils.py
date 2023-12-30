@@ -350,3 +350,91 @@ def steam_big_picture(connection: Connection, action: str):
 
     if result is None or result.return_code != 0:
         raise HomeAssistantError(f"Could not {action} Steam Big Picture on system running at {connection.host}.")
+
+
+def get_audio_config(connection: Connection):
+    if is_unix_system(connection):
+        config = {'sinks': [], 'sources': []}
+
+        def parse_device_info(lines, device_type):
+            devices = []
+            current_device = {}
+
+            for line in lines:
+                if line.startswith(f"{device_type} #"):
+                    if current_device and "Monitor" not in current_device['description']:
+                        devices.append(current_device)
+                    current_device = {'id': int(re.search(r'#(\d+)', line).group(1))}
+                elif line.startswith("	Name:"):
+                    current_device['name'] = line.split(":")[1].strip()
+                elif line.startswith("	State:"):
+                    current_device['state'] = line.split(":")[1].strip()
+                elif line.startswith("	Description:"):
+                    current_device['description'] = line.split(":")[1].strip()
+
+            if current_device:
+                devices.append(current_device)
+
+            return devices
+
+        # Get sinks
+        result = connection.run("LANG=en_US.UTF-8 pactl list sinks")
+        if result.return_code != 0:
+            raise HomeAssistantError(f"Could not get audio sinks on system running at {connection.host}.")
+        config['sinks'] = parse_device_info(result.stdout.split('\n'), 'Sink')
+
+        # Get sources
+        result = connection.run("LANG=en_US.UTF-8 pactl list sources")
+        if result.return_code != 0:
+            raise HomeAssistantError(f"Could not get audio sources on system running at {connection.host}.")
+        config['sources'] = parse_device_info(result.stdout.split('\n'), 'Source')
+
+        return config
+    else:
+        raise HomeAssistantError("Not implemented yet for Windows OS.")
+
+
+def change_audio_config(connection: Connection, volume: int, mute: bool, input_device: str = "@DEFAULT_SOURCE@",
+                        output_device: str = "@DEFAULT_SINK@"):
+    """Change audio configuration on the host system."""
+
+    if is_unix_system(connection):
+        current_config = get_audio_config(connection)
+        executable = "pactl"
+        commands = []
+
+        def get_device_id(device_type, user_device):
+            for device in current_config[device_type]:
+                if device['description'] == user_device:
+                    return device['name']
+            return user_device
+
+        # Set default sink if specified
+        if output_device and output_device != "@DEFAULT_SINK@":
+            output_device = get_device_id('sinks', output_device)
+            commands.append(f"{executable} set-default-sink {output_device}")
+
+        # Set default source if specified
+        if input_device and input_device != "@DEFAULT_SOURCE@":
+            input_device = get_device_id('sources', input_device)
+            commands.append(f"{executable} set-default-source {input_device}")
+
+        # Set sink volume if specified
+        if volume is not None:
+            commands.append(f"{executable} set-sink-volume {output_device} {volume}%")
+
+        # Set sink and source mute status if specified
+        if mute is not None:
+            commands.append(f"{executable} set-sink-mute {output_device} {'yes' if mute else 'no'}")
+            commands.append(f"{executable} set-source-mute {output_device} {'yes' if mute else 'no'}")
+
+        # Execute commands
+        for command in commands:
+            _LOGGER.debug("Running command: %s", command)
+            result = connection.run(command)
+
+            if result.return_code != 0:
+                raise HomeAssistantError("Could not change audio config on system running on %s, check logs with debug",
+                                         connection.host)
+    else:
+        raise HomeAssistantError("Not implemented yet for Windows OS.")

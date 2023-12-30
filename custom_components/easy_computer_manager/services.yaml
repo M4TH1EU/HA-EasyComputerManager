@@ -97,3 +97,37 @@ steam_big_picture:
               value: stop
             - label: Exit and go back to the desktop Steam UI
               value: exit
+change_audio_config:
+  name: Change audio config
+  description: Change audio config (volume, mute, input, output).
+  target:
+    entity:
+      integration: easy_computer_manager
+      domain: switch
+  fields:
+    volume:
+      name: Volume
+      description: The volume to set.
+      example: 50
+      selector:
+        number:
+          min: 0
+          max: 100
+    mute:
+      name: Mute
+      description: Mute the audio.
+      example: true
+      selector:
+        boolean:
+    input_device:
+      name: Input device
+      description: The ID/name/description of the input device.
+      example: "Kraken 7.1 Chroma Stéréo analogique"
+      selector:
+        text:
+    output_output:
+      name: Output device
+      description: The ID/name/description of the output device.
+      example: "Starship/Matisse HD Audio Controller Stéréo analogique"
+      selector:
+        text:
