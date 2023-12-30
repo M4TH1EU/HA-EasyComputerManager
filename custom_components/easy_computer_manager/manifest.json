@@ -14,5 +14,5 @@
     "wakeonlan==2.1.0",
     "fabric2==2.7.1"
   ],
-  "version": "0.0.1"
+  "version": "1.1.0"
 }
