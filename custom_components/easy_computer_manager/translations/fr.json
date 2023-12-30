@@ -1,25 +1,25 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "L'appareil est déjà configuré."
-        },
-        "error": {
-            "cannot_connect": "Impossible de se connecter à l'appareil.",
-            "invalid_auth": "Identifiant ou mot de passe invalide.",
-            "unknown": "Erreur inconnue."
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "host": "Adresse IP",
-                    "username": "Nom d'utilisateur",
-                    "password": "Mot de passe",
-                    "dualboot": "Est-ce que cet ordinateur est un dualboot Linux/Windows?",
-                    "port": "Port",
-                    "name": "Nom de l'appareil",
-                    "mac": "Adresse MAC"
-                }
-            }
+  "config": {
+    "abort": {
+      "already_configured": "L'appareil est déjà configuré."
+    },
+    "error": {
+      "cannot_connect": "Impossible de se connecter à l'appareil.",
+      "invalid_auth": "Identifiant ou mot de passe invalide.",
+      "unknown": "Erreur inconnue."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Adresse IP",
+          "username": "Nom d'utilisateur",
+          "password": "Mot de passe",
+          "dualboot": "Est-ce que cet ordinateur est un dualboot Linux/Windows?",
+          "port": "Port",
+          "name": "Nom de l'appareil",
+          "mac": "Adresse MAC"
         }
+      }
     }
+  }
 }

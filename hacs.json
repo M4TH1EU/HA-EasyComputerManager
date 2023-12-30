@@ -1,5 +1,7 @@
 {
   "name": "Easy Computer Manager",
-  "country": ["CH"],
+  "country": [
+    "CH"
+  ],
   "render_readme": true
 }

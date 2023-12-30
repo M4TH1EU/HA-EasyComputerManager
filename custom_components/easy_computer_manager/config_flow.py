@@ -5,10 +5,10 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from paramiko.ssh_exception import AuthenticationException
-
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
+from paramiko.ssh_exception import AuthenticationException
+
 from . import utils
 from .const import DOMAIN
 

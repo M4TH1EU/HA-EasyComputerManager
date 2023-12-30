@@ -1,4 +1,4 @@
-# Some code is from the official wake_on_lan integration
+# Some snippets of code are from the official wake_on_lan integration (inspiration for this custom component)
 
 from __future__ import annotations
 
@@ -274,7 +274,7 @@ class ComputerSwitch(SwitchEntity):
         if monitors_config is not None and len(monitors_config) > 0:
             utils.change_monitors_config(self._connection, monitors_config)
         else:
-            raise HomeAssistantError("The monitors config is empty.")
+            raise HomeAssistantError("The 'monitors_config' parameter must be a non-empty dictionary.")
 
     def steam_big_picture(self, action: str) -> None:
         """Controls Steam Big Picture mode."""
@@ -282,7 +282,7 @@ class ComputerSwitch(SwitchEntity):
         if action is not None:
             utils.steam_big_picture(self._connection, action)
         else:
-            raise HomeAssistantError("You must specify an action.")
+            raise HomeAssistantError("The 'action' parameter must be specified.")
 
     def change_audio_config(self, volume: int | None = None, mute: bool | None = None, input_device: str | None = None,
                             output_device: str | None = None) -> None:
@@ -291,52 +291,47 @@ class ComputerSwitch(SwitchEntity):
 
     def update(self) -> None:
         """Ping the computer to see if it is online and update the state."""
-        ping_cmd = [
-            "ping",
-            "-c",
-            "1",
-            "-W",
-            str(DEFAULT_PING_TIMEOUT),
-            str(self._host),
-        ]
+        ping_cmd = ["ping", "-c", "1", "-W", str(DEFAULT_PING_TIMEOUT), str(self._host)]
         status = sp.call(ping_cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
         self._state = not bool(status)
 
         # Update the state attributes and the connection only if the computer is on
         if self._state:
-            if not utils.test_connection(self._connection):
-                _LOGGER.info("Renewing SSH connection to %s using username %s", self._host, self._username)
+            if self._connection is None or not utils.test_connection(self._connection):
+                self.renew_ssh_connection()
 
-                if self._connection is not None:
-                    self._connection.close()
-
-                self._connection = utils.create_ssh_connection(self._host, self._username, self._password)
-
-                try:
-                    self._connection.open()
-                except AuthenticationException as error:
-                    _LOGGER.error("Could not authenticate to %s using username %s : %s", self._host, self._username,
-                                  error)
-                    self._state = False
-                    return
-                except Exception as error:
-                    _LOGGER.error("Could not connect to %s using username %s : %s", self._host, self._username, error)
-
-                    # Check if the error is due to timeout
-                    if "timed out" in str(error):
-                        _LOGGER.warning(
-                            "Computer at %s does not respond to the SSH request. Possibles causes : might be offline, "
-                            "the firewall is blocking the SSH port or the SSH server is offline and/or misconfigured.",
-                            self._host)
-
-                    self._state = False
+                if not self._state:
                     return
 
             self._attr_extra_state_attributes = {
                 "operating_system": utils.get_operating_system(self._connection),
-                "operating_system_version": utils.get_operating_system_version(
-                    self._connection
-                ),
+                "operating_system_version": utils.get_operating_system_version(self._connection),
                 "mac_address": self._mac_address,
                 "ip_address": self._host,
             }
+
+    def renew_ssh_connection(self) -> None:
+        """Renew the SSH connection."""
+        _LOGGER.info("Renewing SSH connection to %s using username %s", self._host, self._username)
+
+        if self._connection is not None:
+            self._connection.close()
+
+        try:
+            self._connection = utils.create_ssh_connection(self._host, self._username, self._password)
+            self._connection.open()
+        except AuthenticationException as error:
+            _LOGGER.error("Could not authenticate to %s using username %s: %s", self._host, self._username, error)
+            self._state = False
+        except Exception as error:
+            _LOGGER.error("Could not connect to %s using username %s: %s", self._host, self._username, error)
+
+            # Check if the error is due to timeout
+            if "timed out" in str(error):
+                _LOGGER.warning(
+                    "Computer at %s does not respond to the SSH request. Possible causes: might be offline, "
+                    "the firewall is blocking the SSH port, or the SSH server is offline and/or misconfigured.",
+                    self._host
+                )
+
+            self._state = False

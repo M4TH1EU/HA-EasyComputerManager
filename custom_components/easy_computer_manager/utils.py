@@ -53,15 +53,12 @@ def get_operating_system_version(connection: Connection, is_unix=None):
         result = connection.run(
             "awk -F'=' '/^NAME=|^VERSION=/{gsub(/\"/, \"\", $2); printf $2\" \"}\' /etc/os-release && echo").stdout
         if result == "":
-            result = connection.run(
-                "lsb_release -a | awk '/Description/ {print $2, $3, $4}'"
-            ).stdout
+            result = connection.run("lsb_release -a | awk '/Description/ {print $2, $3, $4}'").stdout
 
         return result
     else:
         return connection.run(
-            'for /f "tokens=1 delims=|" %i in (\'wmic os get Name ^| findstr /B /C:"Microsoft"\') do @echo %i'
-        ).stdout
+            'for /f "tokens=1 delims=|" %i in (\'wmic os get Name ^| findstr /B /C:"Microsoft"\') do @echo %i').stdout
 
 
 def get_operating_system(connection: Connection):
@@ -80,29 +77,19 @@ def shutdown_system(connection: Connection, is_unix=None):
     if is_unix is None:
         is_unix = is_unix_system(connection)
 
-    if is_unix:
-        # First method using shutdown command
-        result = connection.run("sudo shutdown -h now")
-        if result.return_code != 0:
-            # Try a second method using init command
-            result = connection.run("sudo init 0")
-            if result.return_code != 0:
-                # Try a third method using systemctl command
-                result = connection.run("sudo systemctl poweroff")
-                if result.return_code != 0:
-                    raise HomeAssistantError(
-                        f"Cannot shutdown system running at {connection.host}, all methods failed.")
+    shutdown_commands = {
+        "unix": ["sudo shutdown -h now", "sudo init 0", "sudo systemctl poweroff"],
+        "windows": ["shutdown /s /t 0", "wmic os where Primary=TRUE call Shutdown"]
+    }
 
-    else:
-        # First method using shutdown command
-        result = connection.run("shutdown /s /t 0")
-        if result.return_code != 0:
-            # Try a second method using init command
-            result = connection.run("wmic os where Primary=TRUE call Shutdown")
-            if result.return_code != 0:
-                raise HomeAssistantError(f"Cannot shutdown system running at {connection.host}, all methods failed.")
+    for command in shutdown_commands["unix" if is_unix else "windows"]:
+        result = connection.run(command)
+        if result.return_code == 0:
+            _LOGGER.debug("System shutting down on %s.", connection.host)
+            connection.close()
+            return
 
-    connection.close()
+    raise HomeAssistantError(f"Cannot shutdown system running at {connection.host}, all methods failed.")
 
 
 def restart_system(connection: Connection, is_unix=None):
@@ -111,25 +98,18 @@ def restart_system(connection: Connection, is_unix=None):
     if is_unix is None:
         is_unix = is_unix_system(connection)
 
-    if is_unix:
-        # First method using shutdown command
-        result = connection.run("sudo shutdown -r now")
-        if result.return_code != 0:
-            # Try a second method using init command
-            result = connection.run("sudo init 6")
-            if result.return_code != 0:
-                # Try a third method using systemctl command
-                result = connection.run("sudo systemctl reboot")
-                if result.return_code != 0:
-                    raise HomeAssistantError(f"Cannot restart system running at {connection.host}, all methods failed.")
-    else:
-        # First method using shutdown command
-        result = connection.run("shutdown /r /t 0")
-        if result.return_code != 0:
-            # Try a second method using wmic command
-            result = connection.run("wmic os where Primary=TRUE call Reboot")
-            if result.return_code != 0:
-                raise HomeAssistantError(f"Cannot restart system running at {connection.host}, all methods failed.")
+    restart_commands = {
+        "unix": ["sudo shutdown -r now", "sudo init 6", "sudo systemctl reboot"],
+        "windows": ["shutdown /r /t 0", "wmic os where Primary=TRUE call Reboot"]
+    }
+
+    for command in restart_commands["unix" if is_unix else "windows"]:
+        result = connection.run(command)
+        if result.return_code == 0:
+            _LOGGER.debug("System restarting on %s.", connection.host)
+            return
+
+    raise HomeAssistantError(f"Cannot restart system running at {connection.host}, all methods failed.")
 
 
 def sleep_system(connection: Connection, is_unix=None):
@@ -138,24 +118,18 @@ def sleep_system(connection: Connection, is_unix=None):
     if is_unix is None:
         is_unix = is_unix_system(connection)
 
-    if is_unix:
-        # First method using systemctl command
-        result = connection.run("sudo systemctl suspend")
-        if result.return_code != 0:
-            # Try a second method using pm-suspend command
-            result = connection.run("sudo pm-suspend")
-            if result.return_code != 0:
-                raise HomeAssistantError(
-                    f"Cannot put system running at {connection.host} to sleep, all methods failed.")
-    else:
-        # First method using shutdown command
-        result = connection.run("shutdown /h /t 0")
-        if result.return_code != 0:
-            # Try a second method using rundll32 command
-            result = connection.run("rundll32.exe powrprof.dll,SetSuspendState Sleep")
-            if result.return_code != 0:
-                raise HomeAssistantError(
-                    f"Cannot put system running at {connection.host} to sleep, all methods failed.")
+    sleep_commands = {
+        "unix": ["sudo systemctl suspend", "sudo pm-suspend"],
+        "windows": ["shutdown /h /t 0", "rundll32.exe powrprof.dll,SetSuspendState Sleep"]
+    }
+
+    for command in sleep_commands["unix" if is_unix else "windows"]:
+        result = connection.run(command)
+        if result.return_code == 0:
+            _LOGGER.debug("System sleeping on %s.", connection.host)
+            return
+
+    raise HomeAssistantError(f"Cannot put system running at {connection.host} to sleep, all methods failed.")
 
 
 def get_windows_entry_in_grub(connection: Connection):
@@ -163,81 +137,70 @@ def get_windows_entry_in_grub(connection: Connection):
     Grabs the Windows entry name in GRUB.
     Used later with grub-reboot to specify which entry to boot.
     """
-    result = connection.run("sudo awk -F \"'\" '/windows/ {print $2}' /boot/grub/grub.cfg")
+    commands = [
+        "sudo awk -F \"'\" '/windows/ {print $2}' /boot/grub/grub.cfg",
+        "sudo awk -F \"'\" '/windows/ {print $2}' /boot/grub2/grub.cfg"
+    ]
 
-    if result.return_code == 0:
-        _LOGGER.debug("Found Windows entry in grub : " + result.stdout.strip())
-    else:
-        result = connection.run("sudo awk -F \"'\" '/windows/ {print $2}' /boot/grub2/grub.cfg")
-        if result.return_code == 0:
-            _LOGGER.debug("Successfully found Windows Grub entry (%s) for system running at %s.", result.stdout.strip(),
-                          connection.host)
-        else:
-            _LOGGER.error("Could not find Windows entry on computer with address %s.")
-            return None
+    for command in commands:
+        result = connection.run(command)
+        if result.return_code == 0 and result.stdout.strip():
+            _LOGGER.debug("Found Windows entry in GRUB: " + result.stdout.strip())
+            return result.stdout.strip()
 
-    # Check if the entry is valid
-    if result.stdout.strip() != "":
-        return result.stdout.strip()
-    else:
-        _LOGGER.error("Could not find Windows entry on computer with address %s.")
-        return None
+    _LOGGER.error("Could not find Windows entry in GRUB for system running at %s.", connection.host)
+    return None
 
 
 def restart_to_windows_from_linux(connection: Connection):
     """Restart a running Linux system to Windows."""
 
-    if is_unix_system(connection):
-        windows_entry = get_windows_entry_in_grub(connection)
-        if windows_entry is not None:
-            # First method using grub-reboot command
-            result = connection.run(f"sudo grub-reboot \"{windows_entry}\"")
-            if result.return_code != 0:
-                # Try a second method using grub2-reboot command
-                result = connection.run(f"sudo grub2-reboot \"{windows_entry}\"")
+    if not is_unix_system(connection):
+        raise HomeAssistantError(f"System running at {connection.host} is not a Linux system.")
 
-            # Restart system if successful grub(2)-reboot command
+    windows_entry = get_windows_entry_in_grub(connection)
+
+    if windows_entry is not None:
+        reboot_commands = ["sudo grub-reboot", "sudo grub2-reboot"]
+
+        for reboot_command in reboot_commands:
+            result = connection.run(f"{reboot_command} \"{windows_entry}\"")
+
             if result.return_code == 0:
                 _LOGGER.debug("Rebooting to Windows")
                 restart_system(connection)
-            else:
-                raise HomeAssistantError(
-                    f"Could not restart system running on {connection.host} to Windows from Linux, all methods failed.")
-        else:
-            raise HomeAssistantError(f"Could not find Windows entry in grub for system running at {connection.host}.")
+                return
+
+        raise HomeAssistantError(f"Failed to restart system running on {connection.host} to Windows from Linux.")
     else:
-        raise HomeAssistantError(f"System running at {connection.host} is not a Linux system.")
+        raise HomeAssistantError(f"Could not find Windows entry in grub for system running at {connection.host}.")
 
 
 def change_monitors_config(connection: Connection, monitors_config: dict):
-    """From a YAML config, changes the monitors configuration on the host, only works on Linux and Gnome (for now)."""
-    # TODO: Add support for Windows
+    """Change monitors configuration on the host (Linux + Gnome, and partial Windows support)."""
 
     if is_unix_system(connection):
         command_parts = ["gnome-monitor-config", "set"]
 
         for monitor, settings in monitors_config.items():
             if settings.get('enabled', False):
-                if 'primary' in settings and settings['primary']:
-                    command_parts.append(f'-LpM {monitor}')
-                else:
-                    command_parts.append(f'-LM {monitor}')
+                command_parts.extend(['-LpM' if settings.get('primary', False) else '-LM', monitor])
 
                 if 'position' in settings:
-                    command_parts.append(f'-x {settings["position"][0]} -y {settings["position"][1]}')
+                    command_parts.extend(['-x', str(settings["position"][0]), '-y', str(settings["position"][1])])
 
                 if 'mode' in settings:
-                    command_parts.append(f'-m {settings["mode"]}')
+                    command_parts.extend(['-m', settings["mode"]])
 
                 if 'scale' in settings:
-                    command_parts.append(f'-s {settings["scale"]}')
+                    command_parts.extend(['-s', str(settings["scale"])])
 
                 if 'transform' in settings:
-                    command_parts.append(f'-t {settings["transform"]}')
+                    command_parts.extend(['-t', settings["transform"]])
 
         command = ' '.join(command_parts)
-
         _LOGGER.debug("Running command: %s", command)
+
         result = connection.run(command)
 
         if result.return_code == 0:
@@ -245,44 +208,53 @@ def change_monitors_config(connection: Connection, monitors_config: dict):
         else:
             raise HomeAssistantError("Could not change monitors config on system running on %s, check logs with debug",
                                      connection.host)
+
     else:
         raise HomeAssistantError("Not implemented yet for Windows OS.")
 
-        # Use NIRCMD to change monitors config on Windows
-        #  setdisplay {monitor:index/name} [width] [height] [color bits] {refresh rate} {-updatereg} {-allusers}
-        # TODO: Work in progress
-
+        # TODO: Implement Windows support using NIRCMD
         command_parts = ["nircmd.exe", "setdisplay"]
+        #  setdisplay {monitor:index/name} [width] [height] [color bits] {refresh rate} {-updatereg} {-allusers}
 
         for monitor, settings in monitors_config.items():
             if settings.get('enabled', False):
-                if 'primary' in settings and settings['primary']:
-                    command_parts.append(f'{monitor} -primary')
-                else:
-                    command_parts.append(f'{monitor} -secondary')
+                command_parts.extend(
+                    [f'{monitor} -primary' if settings.get('primary', False) else f'{monitor} -secondary'])
 
                 if 'resolution' in settings:
-                    command_parts.append(f'{settings["resolution"][0]} {settings["resolution"][1]}')
+                    command_parts.extend([str(settings["resolution"][0]), str(settings["resolution"][1])])
 
                 if 'refresh_rate' in settings:
-                    command_parts.append(f'-hz {settings["refresh_rate"]}')
+                    command_parts.extend(['-hz', str(settings["refresh_rate"])])
 
                 if 'color_bits' in settings:
-                    command_parts.append(f'-bits {settings["color_bits"]}')
+                    command_parts.extend(['-bits', str(settings["color_bits"])])
+
+        command = ' '.join(command_parts)
+        _LOGGER.debug("Running command: %s", command)
+
+        result = connection.run(command)
+
+        if result.return_code == 0:
+            _LOGGER.info("Successfully changed monitors config on system running on %s.", connection.host)
+        else:
+            raise HomeAssistantError("Could not change monitors config on system running on %s, check logs with debug",
+                                     connection.host)
 
 
 def silent_install_nircmd(connection: Connection):
     """Silently install NIRCMD on a Windows system."""
 
     if not is_unix_system(connection):
-        download_url = "http://www.nirsoft.net/utils/nircmd.zip"
+        download_url = "https://www.nirsoft.net/utils/nircmd.zip"
+        install_path = f"C:\\Users\\{connection.user}\\AppData\\Local\\EasyComputerManager"
 
-        # Download NIRCMD and save it in C:\Users\{username}\AppData\Local\EasyComputerManager\nircmd.zip and unzip it
-        commands = [
-            f"powershell -Command \"Invoke-WebRequest -Uri {download_url} -OutFile ( New-Item -Path \"C:\\Users\\{connection.user}\\AppData\\Local\\EasyComputerManager\\nircmd.zip\" -Force ) -UseBasicParsing\"",
-            f"powershell -Command \"Expand-Archive C:\\Users\\{connection.user}\\AppData\\Local\\EasyComputerManager\\nircmd.zip -DestinationPath C:\\Users\\{connection.user}\\AppData\\Local\\EasyComputerManager\\",
-            f"powershell -Command \"Remove-Item C:\\Users\\{connection.user}\\AppData\\Local\\EasyComputerManager\\nircmd.zip\""
-        ]
+        # Download and unzip NIRCMD
+        download_command = f"powershell -Command \"Invoke-WebRequest -Uri {download_url} -OutFile {install_path}\\nircmd.zip -UseBasicParsing\""
+        unzip_command = f"powershell -Command \"Expand-Archive {install_path}\\nircmd.zip -DestinationPath {install_path}\""
+        remove_zip_command = f"powershell -Command \"Remove-Item {install_path}\\nircmd.zip\""
+
+        commands = [download_command, unzip_command, remove_zip_command]
 
         for command in commands:
             result = connection.run(command)
@@ -324,31 +296,35 @@ def steam_big_picture(connection: Connection, action: str):
 
     _LOGGER.debug(f"Running Steam Big Picture action {action} on system running at {connection.host}.")
 
-    result = None
-    match action:
-        case "start":
-            if is_unix_system(connection):
-                result = connection.run("export WAYLAND_DISPLAY=wayland-0; export DISPLAY=:0; steam -bigpicture &")
-            else:
-                result = connection.run("start steam://open/bigpicture")
-        case "stop":
-            if is_unix_system(connection):
-                result = connection.run("export WAYLAND_DISPLAY=wayland-0; export DISPLAY=:0; steam -shutdown &")
-            else:
-                # TODO: check for different Steam install paths
-                result = connection.run("C:\\Program Files (x86)\\Steam\\steam.exe -shutdown")
-        case "exit":
-            if is_unix_system(connection):
-                # TODO: find a way to exit Steam Big Picture
-                pass
-            else:
-                # TODO: need to test (thx @MasterHidra https://www.reddit.com/r/Steam/comments/5c9l20/comment/k5fmb3k)
-                result = connection.run("nircmd win close title \"Steam Big Picture Mode\"")
-        case _:
-            raise HomeAssistantError(
-                f"Invalid action {action} for Steam Big Picture on system running at {connection.host}.")
+    steam_commands = {
+        "start": {
+            "unix": "export WAYLAND_DISPLAY=wayland-0; export DISPLAY=:0; steam -bigpicture &",
+            "windows": "start steam://open/bigpicture"
+        },
+        "stop": {
+            "unix": "export WAYLAND_DISPLAY=wayland-0; export DISPLAY=:0; steam -shutdown &",
+            "windows": "C:\\Program Files (x86)\\Steam\\steam.exe -shutdown"
+            # TODO: check for different Steam install paths
+        },
+        "exit": {
+            "unix": None,  # TODO: find a way to exit Steam Big Picture
+            "windows": "nircmd win close title \"Steam Big Picture Mode\""
+            # TODO: need to test (thx @MasterHidra https://www.reddit.com/r/Steam/comments/5c9l20/comment/k5fmb3k)
+        }
+    }
 
-    if result is None or result.return_code != 0:
+    command = steam_commands.get(action)
+
+    if command is None:
+        raise HomeAssistantError(
+            f"Invalid action {action} for Steam Big Picture on system running at {connection.host}.")
+
+    if is_unix_system(connection):
+        result = connection.run(command.get("unix"))
+    else:
+        result = connection.run(command.get("windows"))
+
+    if result.return_code != 0:
         raise HomeAssistantError(f"Could not {action} Steam Big Picture on system running at {connection.host}.")
 
 
@@ -432,7 +408,7 @@ def change_audio_config(connection: Connection, volume: int, mute: bool, input_d
         # Set sink and source mute status if specified
         if mute is not None:
             commands.append(f"{executable} set-sink-mute {output_device} {'yes' if mute else 'no'}")
-            commands.append(f"{executable} set-source-mute {output_device} {'yes' if mute else 'no'}")
+            commands.append(f"{executable} set-source-mute {input_device} {'yes' if mute else 'no'}")
 
         # Execute commands
         for command in commands:
@@ -440,7 +416,7 @@ def change_audio_config(connection: Connection, volume: int, mute: bool, input_d
             result = connection.run(command)
 
             if result.return_code != 0:
-                raise HomeAssistantError("Could not change audio config on system running on %s, check logs with debug",
-                                         connection.host)
+                raise HomeAssistantError(
+                    f"Could not change audio config on system running on {connection.host}, check logs with debug")
     else:
         raise HomeAssistantError("Not implemented yet for Windows OS.")

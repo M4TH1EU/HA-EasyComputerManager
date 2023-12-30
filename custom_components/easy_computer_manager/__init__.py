@@ -7,13 +7,13 @@ from __future__ import annotations
 import logging
 from functools import partial
 
+import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 import wakeonlan
-
-import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_BROADCAST_ADDRESS, CONF_BROADCAST_PORT, CONF_MAC
 from homeassistant.core import HomeAssistant, ServiceCall
+
 from .const import DOMAIN, SERVICE_SEND_MAGIC_PACKET, SERVICE_CHANGE_MONITORS_CONFIG
 
 _LOGGER = logging.getLogger(__name__)

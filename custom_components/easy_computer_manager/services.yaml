@@ -1,83 +1,90 @@
 send_magic_packet:
-  name: Send magic packet
-  description: Send a 'magic packet' to wake up a device with 'Wake-On-LAN' capabilities.
+  name: Send Magic Packet
+  description: Send a 'magic packet' to awaken a device with 'Wake-On-LAN' capabilities.
   fields:
     mac:
-      name: MAC address
-      description: MAC address of the device to wake up.
+      name: MAC Address
+      description: MAC address of the target device.
       required: true
       example: "aa:bb:cc:dd:ee:ff"
       selector:
         text:
     broadcast_address:
-      name: Broadcast address
-      description: Broadcast IP where to send the magic packet.
+      name: Broadcast Address
+      description: Broadcast IP to send the magic packet.
       example: 192.168.255.255
       selector:
         text:
     broadcast_port:
-      name: Broadcast port
-      description: Port where to send the magic packet.
+      name: Broadcast Port
+      description: Port to send the magic packet.
       default: 9
       selector:
         number:
           min: 1
           max: 65535
+
 restart_to_windows_from_linux:
   name: Restart to Windows from Linux
-  description: Restart the computer to Windows when running Linux using Grub.
+  description: Restart the computer to Windows while running Linux using Grub.
   target:
     device:
       integration: easy_computer_manager
+
 restart_to_linux_from_windows:
   name: Restart to Linux from Windows
-  description: Restart the computer to Linux when running Windows.
+  description: Restart the computer to Linux while running Windows.
   target:
     device:
       integration: easy_computer_manager
+
 start_computer_to_windows:
-  name: Start computer to Windows
-  description: Start the computer directly Windows (boots to Linux, set grub reboot, then boots to Windows).
+  name: Start Computer to Windows
+  description: Directly start the computer into Windows (boot to Linux, set Grub reboot, then boot to Windows).
   target:
     device:
       integration: easy_computer_manager
+
 put_computer_to_sleep:
-  name: Put computer to sleep
-  description: Put the computer to sleep.
+  name: Put Computer to Sleep
+  description: Put the computer into sleep mode.
   target:
     device:
       integration: easy_computer_manager
+
 restart_computer:
-  name: Restart
+  name: Restart Computer
   description: Restart the computer.
   target:
     device:
       integration: easy_computer_manager
+
 change_monitors_config:
-  name: Change monitors config
-  description: Change monitors config.
+  name: Change Monitors Configuration
+  description: Modify monitors configuration.
   target:
     entity:
       integration: easy_computer_manager
       domain: switch
   fields:
     monitors_config:
-      name: Monitors config
-      description: Monitors config.
+      name: Monitors Configuration
+      description: Monitors configuration details.
       required: true
       example: |
         HDMI-1:
           enabled: true
           primary: true
-          position: [ 0, 0 ]
+          position: [0, 0]
           mode: 3840x2160@120.000
           transform: normal
           scale: 2
       selector:
         object:
+
 steam_big_picture:
-  name: Start/stop Steam Big Picture
-  description: Start/stop Steam Big Picture.
+  name: Start/Stop Steam Big Picture
+  description: Initiate or terminate Steam Big Picture mode.
   target:
     entity:
       integration: easy_computer_manager
@@ -85,7 +92,7 @@ steam_big_picture:
   fields:
     action:
       name: Action
-      description: Choose whether to start/stop Steam Big Picture or go back to the desktop Steam UI.
+      description: Choose whether to start, stop, or return to the desktop Steam UI.
       required: true
       example: "start"
       selector:
@@ -95,11 +102,12 @@ steam_big_picture:
               value: start
             - label: Stop
               value: stop
-            - label: Exit and go back to the desktop Steam UI
+            - label: Exit and return to desktop Steam UI
               value: exit
+
 change_audio_config:
-  name: Change audio config
-  description: Change audio config (volume, mute, input, output).
+  name: Change Audio Configuration
+  description: Adjust audio settings (volume, mute, input, output).
   target:
     entity:
       integration: easy_computer_manager
@@ -107,7 +115,7 @@ change_audio_config:
   fields:
     volume:
       name: Volume
-      description: The volume to set.
+      description: Set the desired volume level.
       example: 50
       selector:
         number:
@@ -120,14 +128,14 @@ change_audio_config:
       selector:
         boolean:
     input_device:
-      name: Input device
-      description: The ID/name/description of the input device.
-      example: "Kraken 7.1 Chroma Stéréo analogique"
+      name: Input Device
+      description: Specify the ID/name/description of the input device.
+      example: "Kraken 7.1 Chroma Stereo Analog"
       selector:
         text:
-    output_output:
-      name: Output device
-      description: The ID/name/description of the output device.
-      example: "Starship/Matisse HD Audio Controller Stéréo analogique"
+    output_device:
+      name: Output Device
+      description: Specify the ID/name/description of the output device.
+      example: "Starship/Matisse HD Audio Controller Stereo Analog"
       selector:
         text:
