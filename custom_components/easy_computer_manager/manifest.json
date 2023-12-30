@@ -1,6 +1,6 @@
 {
   "domain": "easy_computer_manager",
-  "name": "Easy Dualboot Computer Manager",
+  "name": "Easy Computer Manager",
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/easy_computer_manager",
   "requirements": [
