@@ -3,6 +3,7 @@ import re
 
 import fabric2
 from fabric2 import Connection
+from homeassistant.exceptions import HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,6 +66,7 @@ def get_operating_system_version(connection: Connection, is_unix=None):
 
 def get_operating_system(connection: Connection):
     """Return the running operating system type."""
+    # TODO: might be a better way to do this
     result = connection.run("uname")
     if result.return_code == 0:
         return "Linux/Unix"
@@ -88,7 +90,8 @@ def shutdown_system(connection: Connection, is_unix=None):
                 # Try a third method using systemctl command
                 result = connection.run("sudo systemctl poweroff")
                 if result.return_code != 0:
-                    _LOGGER.error("Cannot shutdown system running at %s, all methods failed.", connection.host)
+                    raise HomeAssistantError(
+                        f"Cannot shutdown system running at {connection.host}, all methods failed.")
 
     else:
         # First method using shutdown command
@@ -97,7 +100,7 @@ def shutdown_system(connection: Connection, is_unix=None):
             # Try a second method using init command
             result = connection.run("wmic os where Primary=TRUE call Shutdown")
             if result.return_code != 0:
-                _LOGGER.error("Cannot shutdown system running at %s, all methods failed.", connection.host)
+                raise HomeAssistantError(f"Cannot shutdown system running at {connection.host}, all methods failed.")
 
     connection.close()
 
@@ -118,7 +121,7 @@ def restart_system(connection: Connection, is_unix=None):
                 # Try a third method using systemctl command
                 result = connection.run("sudo systemctl reboot")
                 if result.return_code != 0:
-                    _LOGGER.error("Cannot restart system running at %s, all methods failed.", connection.host)
+                    raise HomeAssistantError(f"Cannot restart system running at {connection.host}, all methods failed.")
     else:
         # First method using shutdown command
         result = connection.run("shutdown /r /t 0")
@@ -126,7 +129,7 @@ def restart_system(connection: Connection, is_unix=None):
             # Try a second method using wmic command
             result = connection.run("wmic os where Primary=TRUE call Reboot")
             if result.return_code != 0:
-                _LOGGER.error("Cannot restart system running at %s, all methods failed.", connection.host)
+                raise HomeAssistantError(f"Cannot restart system running at {connection.host}, all methods failed.")
 
 
 def sleep_system(connection: Connection, is_unix=None):
@@ -142,7 +145,8 @@ def sleep_system(connection: Connection, is_unix=None):
             # Try a second method using pm-suspend command
             result = connection.run("sudo pm-suspend")
             if result.return_code != 0:
-                _LOGGER.error("Cannot put system running at %s to sleep, all methods failed.", connection.host)
+                raise HomeAssistantError(
+                    f"Cannot put system running at {connection.host} to sleep, all methods failed.")
     else:
         # First method using shutdown command
         result = connection.run("shutdown /h /t 0")
@@ -150,7 +154,8 @@ def sleep_system(connection: Connection, is_unix=None):
             # Try a second method using rundll32 command
             result = connection.run("rundll32.exe powrprof.dll,SetSuspendState Sleep")
             if result.return_code != 0:
-                _LOGGER.error("Cannot put system running at %s to sleep, all methods failed.", connection.host)
+                raise HomeAssistantError(
+                    f"Cannot put system running at {connection.host} to sleep, all methods failed.")
 
 
 def get_windows_entry_in_grub(connection: Connection):
@@ -187,22 +192,21 @@ def restart_to_windows_from_linux(connection: Connection):
         if windows_entry is not None:
             # First method using grub-reboot command
             result = connection.run(f"sudo grub-reboot \"{windows_entry}\"")
-
             if result.return_code != 0:
                 # Try a second method using grub2-reboot command
                 result = connection.run(f"sudo grub2-reboot \"{windows_entry}\"")
 
             # Restart system if successful grub(2)-reboot command
             if result.return_code == 0:
-                _LOGGER.info("Rebooting to Windows")
+                _LOGGER.debug("Rebooting to Windows")
                 restart_system(connection)
             else:
-                _LOGGER.error("Could not restart system running on %s to Windows from Linux, all methods failed.",
-                              connection.host)
+                raise HomeAssistantError(
+                    f"Could not restart system running on {connection.host} to Windows from Linux, all methods failed.")
+        else:
+            raise HomeAssistantError(f"Could not find Windows entry in grub for system running at {connection.host}.")
     else:
-        _LOGGER.error(
-            "Could not restart system running on %s to Windows from Linux, system does not appear to be a Linux-based OS.",
-            connection.host)
+        raise HomeAssistantError(f"System running at {connection.host} is not a Linux system.")
 
 
 def change_monitors_config(connection: Connection, monitors_config: dict):
@@ -239,11 +243,10 @@ def change_monitors_config(connection: Connection, monitors_config: dict):
         if result.return_code == 0:
             _LOGGER.info("Successfully changed monitors config on system running on %s.", connection.host)
         else:
-            _LOGGER.error("Could not change monitors config on system running on %s", connection.host)
-            # TODO : add useful debug info
+            raise HomeAssistantError("Could not change monitors config on system running on %s, check logs with debug",
+                                     connection.host)
     else:
-        _LOGGER.error("Not implemented yet.")
-        return
+        raise HomeAssistantError("Not implemented yet for Windows OS.")
 
         # Use NIRCMD to change monitors config on Windows
         #  setdisplay {monitor:index/name} [width] [height] [color bits] {refresh rate} {-updatereg} {-allusers}
