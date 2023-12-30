@@ -1,11 +1,11 @@
 {
   "domain": "easy_computer_manager",
   "name": "Easy Computer Manager",
-  "config_flow": true,
   "codeowners": [
     "@M4TH1EU",
     "@ntilley905"
   ],
+  "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/M4TH1EU/HA-EasyComputerManager/README.md",
   "iot_class": "local_polling",
