@@ -284,7 +284,8 @@ class ComputerSwitch(SwitchEntity):
         else:
             raise HomeAssistantError("You must specify an action.")
 
-    def change_audio_config(self, volume: int = None, mute: bool = None, input_device: str = None, output_device: str = None) -> None:
+    def change_audio_config(self, volume: int | None = None, mute: bool | None = None, input_device: str | None = None,
+                            output_device: str | None = None) -> None:
         """Change the audio configuration using a YAML config file."""
         utils.change_audio_config(self._connection, volume, mute, input_device, output_device)
 
