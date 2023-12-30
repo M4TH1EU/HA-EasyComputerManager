@@ -243,6 +243,49 @@ def change_monitors_config(connection: Connection, monitors_config: dict):
             # TODO : add useful debug info
     else:
         _LOGGER.error("Not implemented yet.")
+        return
+
+        # Use NIRCMD to change monitors config on Windows
+        #  setdisplay {monitor:index/name} [width] [height] [color bits] {refresh rate} {-updatereg} {-allusers}
+        # TODO: Work in progress
+
+        command_parts = ["nircmd.exe", "setdisplay"]
+
+        for monitor, settings in monitors_config.items():
+            if settings.get('enabled', False):
+                if 'primary' in settings and settings['primary']:
+                    command_parts.append(f'{monitor} -primary')
+                else:
+                    command_parts.append(f'{monitor} -secondary')
+
+                if 'resolution' in settings:
+                    command_parts.append(f'{settings["resolution"][0]} {settings["resolution"][1]}')
+
+                if 'refresh_rate' in settings:
+                    command_parts.append(f'-hz {settings["refresh_rate"]}')
+
+                if 'color_bits' in settings:
+                    command_parts.append(f'-bits {settings["color_bits"]}')
+
+
+def silent_install_nircmd(connection: Connection):
+    """Silently install NIRCMD on a Windows system."""
+
+    if not is_unix_system(connection):
+        download_url = "http://www.nirsoft.net/utils/nircmd.zip"
+
+        # Download NIRCMD and save it in C:\Users\{username}\AppData\Local\EasyComputerManager\nircmd.zip and unzip it
+        commands = [
+            f"powershell -Command \"Invoke-WebRequest -Uri {download_url} -OutFile ( New-Item -Path \"C:\\Users\\{connection.user}\\AppData\\Local\\EasyComputerManager\\nircmd.zip\" -Force ) -UseBasicParsing\"",
+            f"powershell -Command \"Expand-Archive C:\\Users\\{connection.user}\\AppData\\Local\\EasyComputerManager\\nircmd.zip -DestinationPath C:\\Users\\{connection.user}\\AppData\\Local\\EasyComputerManager\\",
+            f"powershell -Command \"Remove-Item C:\\Users\\{connection.user}\\AppData\\Local\\EasyComputerManager\\nircmd.zip\""
+        ]
+
+        for command in commands:
+            result = connection.run(command)
+            if result.return_code != 0:
+                _LOGGER.error("Could not install NIRCMD on system running on %s.", connection.host)
+                return
 
 
 def parse_gnome_monitor_config(output):
