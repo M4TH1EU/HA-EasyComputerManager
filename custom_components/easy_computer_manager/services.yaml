@@ -1,6 +1,6 @@
 send_magic_packet:
   name: Send Magic Packet
-  description: Send a 'magic packet' to awaken a device with 'Wake-On-LAN' capabilities.
+  description: Send a 'magic packet' to wake up a device with 'Wake-On-LAN' capabilities.
   fields:
     mac:
       name: MAC Address
@@ -139,3 +139,11 @@ change_audio_config:
       example: "Starship/Matisse HD Audio Controller Stereo Analog"
       selector:
         text:
+
+debug_info:
+  name: Debug Information
+  description: Display debug information to help with setup and troubleshooting. You can use this data (such as monitor resolutions, audio device names/IDs, etc.) with others services such as change_audio_config or change_monitors_config
+  target:
+    entity:
+      integration: easy_computer_manager
+      domain: switch

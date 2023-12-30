@@ -23,7 +23,7 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_PORT,
     CONF_USERNAME, )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import (
     config_validation as cv,
@@ -37,7 +37,7 @@ from paramiko.ssh_exception import AuthenticationException
 from . import utils
 from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_TO_SLEEP, \
     SERVICE_START_COMPUTER_TO_WINDOWS, SERVICE_RESTART_COMPUTER, SERVICE_RESTART_TO_LINUX_FROM_WINDOWS, \
-    SERVICE_CHANGE_MONITORS_CONFIG, SERVICE_STEAM_BIG_PICTURE, SERVICE_CHANGE_AUDIO_CONFIG
+    SERVICE_CHANGE_MONITORS_CONFIG, SERVICE_STEAM_BIG_PICTURE, SERVICE_CHANGE_AUDIO_CONFIG, SERVICE_DEBUG_INFO
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -137,6 +137,14 @@ async def async_setup_entry(
              vol.Optional("output_device"): str}
         ),
         SERVICE_CHANGE_AUDIO_CONFIG,
+    )
+
+    # Register the service to print debug info
+    platform.async_register_entity_service(
+        SERVICE_DEBUG_INFO,
+        {},
+        SERVICE_DEBUG_INFO,
+        supports_response=SupportsResponse.ONLY
     )
 
 
@@ -335,3 +343,7 @@ class ComputerSwitch(SwitchEntity):
                 )
 
             self._state = False
+
+    def debug_info(self) -> ServiceResponse:
+        """Prints debug info."""
+        return utils.get_debug_info(self._connection)

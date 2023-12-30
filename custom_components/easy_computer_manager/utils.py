@@ -263,32 +263,61 @@ def silent_install_nircmd(connection: Connection):
                 return
 
 
-def parse_gnome_monitor_config(output):
-    # SHOULD NOT BE USED YET, STILL IN DEVELOPMENT
+def get_monitors_config(connection: Connection) -> dict:
     """Parse the output of the gnome-monitor-config command to get the current monitor configuration."""
 
-    monitors = []
-    current_monitor = None
+    if is_unix_system(connection):
+        result = connection.run("gnome-monitor-config list")
+        if result.return_code != 0:
+            raise HomeAssistantError(f"Could not get monitors config on system running at {connection.host}.")
 
-    for line in output.split('\n'):
-        monitor_match = re.match(r'^Monitor \[ (.+?) \] (ON|OFF)$', line)
-        if monitor_match:
-            if current_monitor:
-                monitors.append(current_monitor)
-            source, status = monitor_match.groups()
-            current_monitor = {'source': source, 'status': status, 'names': [], 'resolutions': []}
-        elif current_monitor:
-            display_name_match = re.match(r'^\s+display-name: (.+)$', line)
-            resolution_match = re.match(r'^\s+(\d+x\d+@\d+(?:\.\d+)?).*$', line)
-            if display_name_match:
-                current_monitor['names'].append(display_name_match.group(1).replace('"', ''))
-            elif resolution_match:
-                current_monitor['resolutions'].append(resolution_match.group(1))
+        monitors = []
+        current_monitor = None
 
-    if current_monitor:
-        monitors.append(current_monitor)
+        for line in result.stdout.split('\n'):
+            monitor_match = re.match(r'^Monitor \[ (.+?) \] (ON|OFF)$', line)
+            if monitor_match:
+                if current_monitor:
+                    monitors.append(current_monitor)
+                source, status = monitor_match.groups()
+                current_monitor = {'source': source, 'status': status, 'names': [], 'resolutions': []}
+            elif current_monitor:
+                display_name_match = re.match(r'^\s+display-name: (.+)$', line)
+                resolution_match = re.match(r'^\s+(\d+x\d+@\d+(?:\.\d+)?).*$', line)
+                if display_name_match:
+                    current_monitor['names'].append(display_name_match.group(1).replace('"', ''))
+                elif resolution_match:
+                    # Don't include resolutions under 1280x720
+                    if int(resolution_match.group(1).split('@')[0].split('x')[0]) >= 1280:
 
-    return monitors
+                        # If there are already resolutions in the list, check if the framerate between the last is >1
+                        if len(current_monitor['resolutions']) > 0:
+                            last_resolution = current_monitor['resolutions'][-1]
+                            last_resolution_size = last_resolution.split('@')[0]
+                            this_resolution_size = resolution_match.group(1).split('@')[0]
+
+                            # Only truncate some framerates if the resolution are the same
+                            if last_resolution_size == this_resolution_size:
+                                last_resolution_framerate = float(last_resolution.split('@')[1])
+                                this_resolution_framerate = float(resolution_match.group(1).split('@')[1])
+
+                                # If the difference between the last resolution framerate and this one is >1, ignore it
+                                if last_resolution_framerate - 1 > this_resolution_framerate:
+                                    current_monitor['resolutions'].append(resolution_match.group(1))
+                            else:
+                                # If the resolution is different, this adds the new resolution
+                                # to the list without truncating
+                                current_monitor['resolutions'].append(resolution_match.group(1))
+                        else:
+                            # This is the first resolution, add it to the list
+                            current_monitor['resolutions'].append(resolution_match.group(1))
+
+        if current_monitor:
+            monitors.append(current_monitor)
+
+        return monitors
+    else:
+        raise HomeAssistantError("Not implemented yet for Windows OS.")
 
 
 def steam_big_picture(connection: Connection, action: str):
@@ -420,3 +449,39 @@ def change_audio_config(connection: Connection, volume: int, mute: bool, input_d
                     f"Could not change audio config on system running on {connection.host}, check logs with debug")
     else:
         raise HomeAssistantError("Not implemented yet for Windows OS.")
+
+
+def get_debug_info(connection: Connection):
+    """Return debug information about the host system."""
+
+    data = {}
+
+    data_os = {
+        'name': get_operating_system(connection),
+        'version': get_operating_system_version(connection),
+        'is_unix': is_unix_system(connection)
+    }
+
+    data_ssh = {
+        'is_connected': connection.is_connected,
+        'username': connection.user,
+        'host': connection.host,
+        'port': connection.port
+    }
+
+    data_grub = {
+        'windows_entry': get_windows_entry_in_grub(connection)
+    }
+
+    data_audio = {
+        'speakers': get_audio_config(connection).get('sinks'),
+        'microphones': get_audio_config(connection).get('sources')
+    }
+
+    data['os'] = data_os
+    data['ssh'] = data_ssh
+    data['grub'] = data_grub
+    data['audio'] = data_audio
+    data['monitors'] = get_monitors_config(connection)
+
+    return data
