@@ -31,13 +31,14 @@ from homeassistant.helpers import (
     entity_platform,
 )
 from homeassistant.helpers.config_validation import make_entity_service_schema
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from paramiko.ssh_exception import AuthenticationException
 
 from . import utils
 from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_TO_SLEEP, \
     SERVICE_START_COMPUTER_TO_WINDOWS, SERVICE_RESTART_COMPUTER, SERVICE_RESTART_TO_LINUX_FROM_WINDOWS, \
-    SERVICE_CHANGE_MONITORS_CONFIG, SERVICE_STEAM_BIG_PICTURE, SERVICE_CHANGE_AUDIO_CONFIG, SERVICE_DEBUG_INFO
+    SERVICE_CHANGE_MONITORS_CONFIG, SERVICE_STEAM_BIG_PICTURE, SERVICE_CHANGE_AUDIO_CONFIG, SERVICE_DEBUG_INFO, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -182,6 +183,26 @@ class ComputerSwitch(SwitchEntity):
         self._attr_unique_id = dr.format_mac(mac_address)
         self._attr_extra_state_attributes = {}
         self._connection = utils.create_ssh_connection(self._host, self._username, self._password)
+
+    @property
+    def device_info(self) -> DeviceInfo | None:
+        """Return the device information."""
+        if self._host is None:
+            return None
+
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._host)},
+            name=self._attr_name,
+            manufacturer="Generic",
+            model="Computer",
+            sw_version=utils.get_operating_system_version(self._connection),
+            connections={(dr.CONNECTION_NETWORK_MAC, self._mac_address)},
+        )
+
+    @property
+    def icon(self) -> str:
+        """Return the icon to use in the frontend, if any."""
+        return "mdi:monitor" if self._state else "mdi:monitor-off"
 
     @property
     def is_on(self) -> bool:
