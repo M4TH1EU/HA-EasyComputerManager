@@ -7,7 +7,6 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
-
 from paramiko.ssh_exception import AuthenticationException
 
 from . import utils
@@ -49,7 +48,8 @@ class Hub:
     async def test_connection(self) -> bool:
         """Test connectivity to the computer is OK."""
         try:
-            return utils.test_connection(utils.create_ssh_connection(self._host, self._username, self._password, self._port))
+            return utils.test_connection(
+                utils.create_ssh_connection(self._host, self._username, self._password, self._port))
         except AuthenticationException:
             return False
 
@@ -61,7 +61,7 @@ async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     if len(data["host"]) < 3:
         raise InvalidHost
 
-    hub = Hub(hass, **data)
+    hub = Hub(hass, data["host"], data["username"], data["password"], data["port"])
 
     if not await hub.test_connection():
         raise CannotConnect

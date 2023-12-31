@@ -9,10 +9,7 @@ from typing import Any
 
 import voluptuous as vol
 import wakeonlan
-from homeassistant.components.switch import (
-    PLATFORM_SCHEMA as PARENT_PLATFORM_SCHEMA,
-    SwitchEntity,
-)
+from homeassistant.components.switch import (SwitchEntity)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_BROADCAST_ADDRESS,
@@ -26,7 +23,6 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import (
-    config_validation as cv,
     device_registry as dr,
     entity_platform,
 )
@@ -42,31 +38,13 @@ from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_T
 
 _LOGGER = logging.getLogger(__name__)
 
-CONF_OFF_ACTION = "turn_off"
-
-DEFAULT_NAME = "Computer Management (WoL, SoL)"
-DEFAULT_PING_TIMEOUT = 1
-
-PLATFORM_SCHEMA = PARENT_PLATFORM_SCHEMA.extend(
-    {
-        vol.Required(CONF_MAC): cv.string,
-        vol.Optional(CONF_BROADCAST_ADDRESS): cv.string,
-        vol.Optional(CONF_BROADCAST_PORT): cv.port,
-        vol.Required(CONF_HOST): cv.string,
-        vol.Required("dualboot", default=False): cv.boolean,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-        vol.Required(CONF_USERNAME, default="root"): cv.string,
-        vol.Required(CONF_PASSWORD, default="root"): cv.string,
-        vol.Optional(CONF_PORT, default=22): cv.string,
-    }
-)
-
 
 async def async_setup_entry(
         hass: HomeAssistant,
         config: ConfigEntry,
         async_add_entities: AddEntitiesCallback,
 ) -> None:
+    # Setup the computer switch
     mac_address: str = config.data.get(CONF_MAC)
     broadcast_address: str | None = config.data.get(CONF_BROADCAST_ADDRESS)
     broadcast_port: int | None = config.data.get(CONF_BROADCAST_PORT)
@@ -77,6 +55,7 @@ async def async_setup_entry(
     password: str = config.data.get(CONF_PASSWORD)
     port: int | None = config.data.get(CONF_PORT)
 
+    # Register the computer switch
     async_add_entities(
         [
             ComputerSwitch(
@@ -97,56 +76,33 @@ async def async_setup_entry(
 
     platform = entity_platform.async_get_current_platform()
 
-    basic_services = [SERVICE_RESTART_TO_WINDOWS_FROM_LINUX,
-                      SERVICE_RESTART_TO_LINUX_FROM_WINDOWS,
-                      SERVICE_PUT_COMPUTER_TO_SLEEP,
-                      SERVICE_START_COMPUTER_TO_WINDOWS,
-                      SERVICE_RESTART_COMPUTER]
+    # Synthax : (service_name: str, schema: dict, supports_response: SupportsResponse)
+    services = [
+        (SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, {}, SupportsResponse.NONE),
+        (SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, {}, SupportsResponse.NONE),
+        (SERVICE_RESTART_TO_LINUX_FROM_WINDOWS, {}, SupportsResponse.NONE),
+        (SERVICE_PUT_COMPUTER_TO_SLEEP, {}, SupportsResponse.NONE),
+        (SERVICE_START_COMPUTER_TO_WINDOWS, {}, SupportsResponse.NONE),
+        (SERVICE_RESTART_COMPUTER, {}, SupportsResponse.NONE),
+        (SERVICE_CHANGE_MONITORS_CONFIG, {vol.Required("monitors_config"): dict}, SupportsResponse.NONE),
+        (SERVICE_STEAM_BIG_PICTURE, {vol.Required("action"): str}, SupportsResponse.NONE),
+        (SERVICE_CHANGE_AUDIO_CONFIG, {
+            vol.Optional("volume"): int,
+            vol.Optional("mute"): bool,
+            vol.Optional("input_device"): str,
+            vol.Optional("output_device"): str
+        }, SupportsResponse.NONE),
+        (SERVICE_DEBUG_INFO, {}, SupportsResponse.ONLY),
+    ]
 
-    for service in basic_services:
+    # Register the services
+    for service in services:
         platform.async_register_entity_service(
-            service,
-            {},
-            service,
+            service[0],
+            make_entity_service_schema(service[1]),
+            service[0],
+            supports_response=service[2]
         )
-
-    # Register the service to change the monitors configuration
-    platform.async_register_entity_service(
-        SERVICE_CHANGE_MONITORS_CONFIG,
-        make_entity_service_schema(
-            {vol.Required("monitors_config"): dict}
-        ),
-        SERVICE_CHANGE_MONITORS_CONFIG,
-    )
-
-    # Register the service to control Steam Big Picture mode
-    platform.async_register_entity_service(
-        SERVICE_STEAM_BIG_PICTURE,
-        make_entity_service_schema(
-            {vol.Required("action"): str}
-        ),
-        SERVICE_STEAM_BIG_PICTURE,
-    )
-
-    # Register the service to change the audio configuration
-    platform.async_register_entity_service(
-        SERVICE_CHANGE_AUDIO_CONFIG,
-        make_entity_service_schema(
-            {vol.Optional("volume"): int,
-             vol.Optional("mute"): bool,
-             vol.Optional("input_device"): str,
-             vol.Optional("output_device"): str}
-        ),
-        SERVICE_CHANGE_AUDIO_CONFIG,
-    )
-
-    # Register the service to print debug info
-    platform.async_register_entity_service(
-        SERVICE_DEBUG_INFO,
-        {},
-        SERVICE_DEBUG_INFO,
-        supports_response=SupportsResponse.ONLY
-    )
 
 
 class ComputerSwitch(SwitchEntity):
@@ -320,7 +276,8 @@ class ComputerSwitch(SwitchEntity):
 
     def update(self) -> None:
         """Ping the computer to see if it is online and update the state."""
-        ping_cmd = ["ping", "-c", "1", "-W", str(DEFAULT_PING_TIMEOUT), str(self._host)]
+        timeout = 1
+        ping_cmd = ["ping", "-c", "1", "-W", str(timeout), str(self._host)]
         status = sp.call(ping_cmd, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
         self._state = not bool(status)
 

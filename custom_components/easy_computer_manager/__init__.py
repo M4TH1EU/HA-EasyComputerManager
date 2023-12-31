@@ -17,13 +17,11 @@ from .const import DOMAIN, SERVICE_SEND_MAGIC_PACKET, SERVICE_CHANGE_MONITORS_CO
 
 _LOGGER = logging.getLogger(__name__)
 
-WAKE_ON_LAN_SEND_MAGIC_PACKET_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_MAC): cv.string,
-        vol.Optional(CONF_BROADCAST_ADDRESS): cv.string,
-        vol.Optional(CONF_BROADCAST_PORT): cv.port,
-    }
-)
+WAKE_ON_LAN_SEND_MAGIC_PACKET_SCHEMA = vol.Schema({
+    vol.Required(CONF_MAC): cv.string,
+    vol.Optional(CONF_BROADCAST_ADDRESS): cv.string,
+    vol.Optional(CONF_BROADCAST_PORT): cv.port,
+})
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -52,6 +50,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             partial(wakeonlan.send_magic_packet, mac_address, **service_kwargs)
         )
 
+    # Register the wake on lan service
     hass.services.async_register(
         DOMAIN,
         SERVICE_SEND_MAGIC_PACKET,
