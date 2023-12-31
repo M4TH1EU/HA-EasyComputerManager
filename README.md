@@ -3,7 +3,8 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/M4TH1EU/HA-EasyComputerManage?style=for-the-badge)](./releases/)
 
-![img.png](.images/header.png)
+![img.png](.images/header.png)  
+
 Easy Computer Manager is a custom integration for Home Assistant that allows you to remotely manage various aspects of your computer, such as sending Wake-On-LAN (WoL) packets, restarting the computer between different operating systems (if dual-boot), adjusting audio configurations, changing monitor settings, and more.
 
 ## Features
@@ -48,7 +49,7 @@ After adding your computer to Home Assistant, you can use the provided services 
 
 ## Troubleshooting
 
-If you encounter any issues during installation or configuration, refer to the troubleshooting section in the [Wiki](wiki-url) or seek assistance from the Home Assistant community.
+If you encounter any issues during installation or configuration, refer to the troubleshooting section in the [Wiki](./wiki) or seek assistance from the Home Assistant community.
 
 ## Contributions
 
