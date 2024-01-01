@@ -291,8 +291,7 @@ class ComputerSwitch(SwitchEntity):
                 "operating_system_version": utils.get_operating_system_version(self._connection),
                 "mac_address": self._mac_address,
                 "ip_address": self._host,
-                "connected_devices": utils.get_bluetooth_devices(self._connection, only_connected=True,
-                                                                 format_for_hass=True),
+                "connected_devices": utils.get_bluetooth_devices(self._connection, only_connected=True, return_as_string=True),
             }
 
     def renew_ssh_connection(self) -> None:

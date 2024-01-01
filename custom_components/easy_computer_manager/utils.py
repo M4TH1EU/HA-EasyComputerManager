@@ -488,7 +488,7 @@ def get_debug_info(connection: Connection):
     return data
 
 
-def get_bluetooth_devices(connection: Connection, only_connected: bool = False, format_for_hass: bool = False):
+def get_bluetooth_devices(connection: Connection, only_connected: bool = False, return_as_string: bool = False):
     """Return a list of Bluetooth devices connected to the host system."""
 
     commands = {
@@ -525,7 +525,7 @@ def get_bluetooth_devices(connection: Connection, only_connected: bool = False, 
         if only_connected:
             devices = [device for device in devices if device["connected"] == "yes"]
 
-        if format_for_hass:
+        if return_as_string:
             devices = "; ".join([f"{device['name']} ({device['address']})" for device in devices])
 
         return devices
