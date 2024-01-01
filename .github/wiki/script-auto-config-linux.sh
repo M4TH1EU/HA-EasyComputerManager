@@ -1,5 +1,7 @@
 #!/bin/bash
 
+USER_BEHIND_SUDO=$(who am i | awk '{print $1}')
+
 # Ask for HomeAssistant IP
 echo "Please enter your HomeAssistant IP address:"
 read -r HOMEASSISTANT_IP
@@ -15,7 +17,7 @@ fi
 # Configure sudoers
 echo "Configuring sudoers..."
 echo -e "\n# Allow your user to execute specific commands without a password (for EasyComputerManager/HA)" | sudo tee -a /etc/sudoers
-echo "$(whoami) ALL=(ALL) NOPASSWD: /sbin/shutdown, /sbin/init, /usr/bin/systemctl, /usr/sbin/pm-suspend, /usr/bin/awk, /usr/sbin/grub-reboot, /usr/sbin/grub2-reboot" | sudo tee -a /etc/sudoers
+echo "$USER_BEHIND_SUDO ALL=(ALL) NOPASSWD: /sbin/shutdown, /sbin/init, /usr/bin/systemctl, /usr/sbin/pm-suspend, /usr/bin/awk, /usr/sbin/grub-reboot, /usr/sbin/grub2-reboot" | sudo tee -a /etc/sudoers
 
 # Firewall Configuration
 echo "Configuring firewall..."
@@ -29,7 +31,7 @@ fi
 echo "Configuring persistent xhost for starting GUI apps (like Steam)..."
 COMMANDS="xhost +$HOMEASSISTANT_IP; xhost +localhost"
 DESKTOP_ENTRY_NAME="EasyComputerManager-AutoStart"
-DESKTOP_ENTRY_PATH="$HOME/.config/autostart/$DESKTOP_ENTRY_NAME.desktop"
+DESKTOP_ENTRY_PATH="/home/$USER_BEHIND_SUDO/.config/autostart/$DESKTOP_ENTRY_NAME.desktop"
 
 # Create the desktop entry file for the Desktop Environment to autostart at login every reboot
 cat > "$DESKTOP_ENTRY_PATH" <<EOF
