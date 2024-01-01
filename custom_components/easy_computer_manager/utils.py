@@ -206,6 +206,9 @@ def change_monitors_config(connection: Connection, monitors_config: dict):
 
         if result.return_code == 0:
             _LOGGER.info("Successfully changed monitors config on system running on %s.", connection.host)
+
+            # Run it once again, it fixes some strange Gnome display bug sometimes and it doesn't hurt
+            connection.run(command)
         else:
             raise HomeAssistantError("Could not change monitors config on system running on %s, check logs with debug",
                                      connection.host)
