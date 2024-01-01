@@ -44,10 +44,12 @@ async def async_setup_entry(
         config: ConfigEntry,
         async_add_entities: AddEntitiesCallback,
 ) -> None:
-    # Setup the computer switch
+    # Retrieve the data from the config flow
     mac_address: str = config.data.get(CONF_MAC)
     broadcast_address: str | None = config.data.get(CONF_BROADCAST_ADDRESS)
     broadcast_port: int | None = config.data.get(CONF_BROADCAST_PORT)
+    # broadcast_address: str | None = config.data.get(CONF_BROADCAST_ADDRESS)
+    # broadcast_port: int | None = config.data.get(CONF_BROADCAST_PORT)
     host: str = config.data.get(CONF_HOST)
     name: str = config.data.get(CONF_NAME)
     dualboot: bool = config.data.get("dualboot")
@@ -95,7 +97,7 @@ async def async_setup_entry(
         (SERVICE_DEBUG_INFO, {}, SupportsResponse.ONLY),
     ]
 
-    # Register the services
+    # Register the services that depends on the switch
     for service in services:
         platform.async_register_entity_service(
             service[0],
@@ -114,8 +116,8 @@ class ComputerSwitch(SwitchEntity):
             name: str,
             host: str | None,
             mac_address: str,
-            broadcast_address: str | None,
-            broadcast_port: int | None,
+            # broadcast_address: str | None,
+            # broadcast_port: int | None,
             dualboot: bool | False,
             username: str,
             password: str,
@@ -127,8 +129,8 @@ class ComputerSwitch(SwitchEntity):
         self._attr_name = name
         self._host = host
         self._mac_address = mac_address
-        self._broadcast_address = broadcast_address
-        self._broadcast_port = broadcast_port
+        # self._broadcast_address = broadcast_address
+        # self._broadcast_port = broadcast_port
         self._dualboot = dualboot
         self._username = username
         self._password = password
@@ -147,7 +149,7 @@ class ComputerSwitch(SwitchEntity):
             return None
 
         return DeviceInfo(
-            identifiers={(DOMAIN, self._host)},
+            identifiers={(DOMAIN, self._mac_address)},
             name=self._attr_name,
             manufacturer="Generic",
             model="Computer",
@@ -169,16 +171,18 @@ class ComputerSwitch(SwitchEntity):
     def turn_on(self, **kwargs: Any) -> None:
         """Turn the computer on using wake on lan."""
         service_kwargs: dict[str, Any] = {}
-        if self._broadcast_address is not None:
-            service_kwargs["ip_address"] = self._broadcast_address
-        if self._broadcast_port is not None:
-            service_kwargs["port"] = self._broadcast_port
+        # if self._broadcast_address is not None:
+        #     service_kwargs["ip_address"] = self._broadcast_address
+        # if self._broadcast_port is not None:
+        #     service_kwargs["port"] = self._broadcast_port
 
         _LOGGER.debug(
             "Send magic packet to mac %s (broadcast: %s, port: %s)",
             self._mac_address,
             self._broadcast_address,
             self._broadcast_port,
+            # self._broadcast_address,
+            # self._broadcast_port,
         )
 
         wakeonlan.send_magic_packet(self._mac_address, **service_kwargs)
