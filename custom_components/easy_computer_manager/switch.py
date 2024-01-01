@@ -46,8 +46,6 @@ async def async_setup_entry(
 ) -> None:
     # Retrieve the data from the config flow
     mac_address: str = config.data.get(CONF_MAC)
-    broadcast_address: str | None = config.data.get(CONF_BROADCAST_ADDRESS)
-    broadcast_port: int | None = config.data.get(CONF_BROADCAST_PORT)
     # broadcast_address: str | None = config.data.get(CONF_BROADCAST_ADDRESS)
     # broadcast_port: int | None = config.data.get(CONF_BROADCAST_PORT)
     host: str = config.data.get(CONF_HOST)
@@ -65,8 +63,6 @@ async def async_setup_entry(
                 name,
                 host,
                 mac_address,
-                broadcast_address,
-                broadcast_port,
                 dualboot,
                 username,
                 password,
