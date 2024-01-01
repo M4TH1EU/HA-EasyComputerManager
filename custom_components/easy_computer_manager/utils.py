@@ -526,7 +526,7 @@ def get_bluetooth_devices(connection: Connection, only_connected: bool = False, 
             devices = [device for device in devices if device["connected"] == "yes"]
 
         if format_for_hass:
-            devices = [{"name": device["name"], "mac": device["address"]} for device in devices]
+            devices = "; ".join([f"{device['name']} ({device['address']})" for device in devices])
 
         return devices
     else:
