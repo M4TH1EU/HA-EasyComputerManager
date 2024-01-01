@@ -152,7 +152,7 @@ class ComputerSwitch(SwitchEntity):
             manufacturer="Generic",
             model="Computer",
             sw_version=utils.get_operating_system_version(
-                self._connection) if self._connection.is_connected() else "Unknown",
+                self._connection) if self._state else "Unknown",
             connections={(dr.CONNECTION_NETWORK_MAC, self._mac_address)},
         )
 
