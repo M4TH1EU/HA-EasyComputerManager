@@ -12,8 +12,6 @@ import wakeonlan
 from homeassistant.components.switch import (SwitchEntity)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    CONF_BROADCAST_ADDRESS,
-    CONF_BROADCAST_PORT,
     CONF_HOST,
     CONF_MAC,
     CONF_NAME,
@@ -175,8 +173,6 @@ class ComputerSwitch(SwitchEntity):
         _LOGGER.debug(
             "Send magic packet to mac %s (broadcast: %s, port: %s)",
             self._mac_address,
-            self._broadcast_address,
-            self._broadcast_port,
             # self._broadcast_address,
             # self._broadcast_port,
         )
@@ -295,6 +291,8 @@ class ComputerSwitch(SwitchEntity):
                 "operating_system_version": utils.get_operating_system_version(self._connection),
                 "mac_address": self._mac_address,
                 "ip_address": self._host,
+                "connected_devices": utils.get_bluetooth_devices(self._connection, only_connected=True,
+                                                                 format_for_hass=True),
             }
 
     def renew_ssh_connection(self) -> None:

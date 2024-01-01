@@ -46,6 +46,7 @@ def is_unix_system(connection: Connection):
 
 def get_operating_system_version(connection: Connection, is_unix=None):
     """Return the running operating system name and version."""
+
     if is_unix is None:
         is_unix = is_unix_system(connection)
 
@@ -485,3 +486,48 @@ def get_debug_info(connection: Connection):
     data['monitors'] = get_monitors_config(connection)
 
     return data
+
+
+def get_bluetooth_devices(connection: Connection, only_connected: bool = False, format_for_hass: bool = False):
+    """Return a list of Bluetooth devices connected to the host system."""
+
+    commands = {
+        "unix": "bash -c \'bluetoothctl devices | cut -f2 -d\\' \\' | while read uuid; do bluetoothctl info $uuid; done|grep -e \"Device\\|Connected\\|Name\"\'",
+        "windows": "",
+    }
+
+    if is_unix_system(connection):
+        result = connection.run(commands["unix"])
+        if result.return_code != 0:
+            raise HomeAssistantError(f"Could not get Bluetooth devices on system running at {connection.host}.")
+
+        devices = []
+        current_device = {}
+
+        for line in result.stdout.split('\n'):
+            line = line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith("Device"):
+                if current_device:
+                    devices.append(current_device)
+                current_device = {"address": line.split()[1]}
+            elif line.startswith("Name:"):
+                current_device["name"] = line.split(":")[1].strip()
+            elif line.startswith("Connected:"):
+                current_device["connected"] = line.split(":")[1].strip()
+
+        if current_device:
+            devices.append(current_device)
+
+        if only_connected:
+            devices = [device for device in devices if device["connected"] == "yes"]
+
+        if format_for_hass:
+            devices = [{"name": device["name"], "mac": device["address"]} for device in devices]
+
+        return devices
+    else:
+        raise HomeAssistantError("Not implemented yet for Windows OS.")
