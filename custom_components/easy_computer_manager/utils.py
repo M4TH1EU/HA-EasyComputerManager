@@ -490,42 +490,44 @@ def get_debug_info(connection: Connection):
 
     return data
 
-
 def get_bluetooth_devices(connection: Connection, only_connected: bool = False, return_as_string: bool = False):
-    """Return a list of Bluetooth devices connected to the host system."""
-
     commands = {
-        "unix": "bash -c \'bluetoothctl devices | cut -f2 -d\\' \\' | while read uuid; do bluetoothctl info $uuid; done|grep -e \"Device\\|Connected\\|Name\"\'",
+        "unix": "bash -c \'bluetoothctl info\'",
         "windows": "",
     }
 
     if is_unix_system(connection):
         result = connection.run(commands["unix"])
         if result.return_code != 0:
-            _LOGGER.error(f"Could not get Bluetooth devices on system running at {connection.host}.")
+            # _LOGGER.debug(f"No bluetooth devices connected or impossible to retrieve them at {connection.host}.")
             return []
-            # raise HomeAssistantError(f"Could not get Bluetooth devices on system running at {connection.host}.")
 
         devices = []
-        current_device = {}
+        current_device = None
 
         for line in result.stdout.split('\n'):
-            line = line.strip()
+            if line.startswith('Device'):
+                if current_device is not None:
+                    devices.append({
+                        "address": current_device,
+                        "name": current_name,
+                        "connected": current_connected
+                    })
+                current_device = line.split()[1]
+                current_name = None
+                current_connected = None
+            elif 'Name:' in line:
+                current_name = line.split(': ', 1)[1]
+            elif 'Connected:' in line:
+                current_connected = line.split(': ')[1] == 'yes'
 
-            if not line:
-                continue
-
-            if line.startswith("Device"):
-                if current_device:
-                    devices.append(current_device)
-                current_device = {"address": line.split()[1]}
-            elif line.startswith("Name:"):
-                current_device["name"] = line.split(":")[1].strip()
-            elif line.startswith("Connected:"):
-                current_device["connected"] = line.split(":")[1].strip()
-
-        if current_device:
-            devices.append(current_device)
+        # Add the last device if any
+        if current_device is not None:
+            devices.append({
+                "address": current_device,
+                "name": current_name,
+                "connected": current_connected
+            })
 
         if only_connected:
             devices = [device for device in devices if device["connected"] == "yes"]
