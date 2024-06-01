@@ -502,7 +502,9 @@ def get_bluetooth_devices(connection: Connection, only_connected: bool = False, 
     if is_unix_system(connection):
         result = connection.run(commands["unix"])
         if result.return_code != 0:
-            raise HomeAssistantError(f"Could not get Bluetooth devices on system running at {connection.host}.")
+            _LOGGER.error(f"Could not get Bluetooth devices on system running at {connection.host}.")
+            return []
+            # raise HomeAssistantError(f"Could not get Bluetooth devices on system running at {connection.host}.")
 
         devices = []
         current_device = {}
