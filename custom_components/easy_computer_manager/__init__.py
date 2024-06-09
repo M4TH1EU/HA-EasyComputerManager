@@ -3,6 +3,7 @@
 # Some snippets of code are from the official wake_on_lan integration (inspiration for this custom component)
 
 from __future__ import annotations
+
 import logging
 from functools import partial
 
