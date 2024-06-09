@@ -273,7 +273,8 @@ def get_monitors_config(connection: Connection) -> dict:
     if is_unix_system(connection):
         result = connection.run("gnome-monitor-config list")
         if result.return_code != 0:
-            raise HomeAssistantError(f"Could not get monitors config on system running at {connection.host}.")
+            raise HomeAssistantError(f"Could not get monitors config on system running at {connection.host}. "
+                                     f"Make sure gnome-monitor-config package is installed.")
 
         monitors = []
         current_monitor = None
@@ -389,13 +390,15 @@ def get_audio_config(connection: Connection):
         # Get sinks
         result = connection.run("LANG=en_US.UTF-8 pactl list sinks")
         if result.return_code != 0:
-            raise HomeAssistantError(f"Could not get audio sinks on system running at {connection.host}.")
+            raise HomeAssistantError(f"Could not get audio sinks on system running at {connection.host}. "
+                                     f"Make sure pactl package is installed!")
         config['sinks'] = parse_device_info(result.stdout.split('\n'), 'Sink')
 
         # Get sources
         result = connection.run("LANG=en_US.UTF-8 pactl list sources")
         if result.return_code != 0:
-            raise HomeAssistantError(f"Could not get audio sources on system running at {connection.host}.")
+            raise HomeAssistantError(f"Could not get audio sources on system running at {connection.host}."
+                                     f"Make sure pactl package is installed!")
         config['sources'] = parse_device_info(result.stdout.split('\n'), 'Source')
 
         return config
@@ -450,7 +453,8 @@ def change_audio_config(connection: Connection, volume: int, mute: bool, input_d
 
             if result.return_code != 0:
                 raise HomeAssistantError(
-                    f"Could not change audio config on system running on {connection.host}, check logs with debug")
+                    f"Could not change audio config on system running on {connection.host}, check logs with debug and"
+                    f"make sure pactl package is installed!")
     else:
         raise HomeAssistantError("Not implemented yet for Windows OS.")
 
@@ -487,20 +491,26 @@ def get_debug_info(connection: Connection):
     data['grub'] = data_grub
     data['audio'] = data_audio
     data['monitors'] = get_monitors_config(connection)
+    data['bluetooth_devices'] = get_bluetooth_devices(connection)
 
     return data
 
-def get_bluetooth_devices(connection: Connection, only_connected: bool = False, return_as_string: bool = False):
+
+def get_bluetooth_devices(connection: Connection, only_connected: bool = False, return_as_string: bool = False) -> []:
     commands = {
-        "unix": "bash -c \'bluetoothctl info\'",
+        "unix": "bluetoothctl info",
         "windows": "",
     }
 
     if is_unix_system(connection):
         result = connection.run(commands["unix"])
         if result.return_code != 0:
-            # _LOGGER.debug(f"No bluetooth devices connected or impossible to retrieve them at {connection.host}.")
-            return []
+            if result.stdout.__contains__("Missing device address argument"):  # Means no devices are connected
+                return []
+            else:
+                _LOGGER.warning(f"Cannot retrieve bluetooth devices at {connection.host}. "
+                                f"Make sure bluetoothctl is installed!")
+                return []
 
         devices = []
         current_device = None
