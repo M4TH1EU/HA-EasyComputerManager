@@ -11,34 +11,6 @@ _LOGGER = logging.getLogger(__name__)
 # _LOGGER.setLevel(logging.DEBUG)
 
 
-def create_ssh_connection(host: str, username: str, password: str, port=22):
-    """Create an SSH connection to a host using a username and password specified in the config flow."""
-    conf = fabric2.Config()
-    conf.run.hide = True
-    conf.run.warn = True
-    conf.warn = True
-    conf.sudo.password = password
-    conf.password = password
-
-    connection = Connection(
-        host=host, user=username, port=port, connect_timeout=3, connect_kwargs={"password": password},
-        config=conf
-    )
-
-    _LOGGER.info("Successfully created SSH connection to %s using username %s", host, username)
-
-    return connection
-
-
-def test_connection(connection: Connection):
-    """Test the connection to the host by running a simple command."""
-    try:
-        connection.run('ls')
-        return True
-    except Exception:
-        return False
-
-
 def is_unix_system(connection: Connection):
     """Return a boolean based on get_operating_system result."""
     return get_operating_system(connection) == "Linux/Unix"
@@ -237,7 +209,7 @@ def change_monitors_config(connection: Connection, monitors_config: dict):
         command = ' '.join(command_parts)
         _LOGGER.debug("Running command: %s", command)
 
-        result = connection.run(command)
+        result = connection.run_action(command)
 
         if result.return_code == 0:
             _LOGGER.info("Successfully changed monitors config on system running on %s.", connection.host)
@@ -457,43 +429,6 @@ def change_audio_config(connection: Connection, volume: int, mute: bool, input_d
                     f"make sure pactl package is installed!")
     else:
         raise HomeAssistantError("Not implemented yet for Windows OS.")
-
-
-def get_debug_info(connection: Connection):
-    """Return debug information about the host system."""
-
-    data = {}
-
-    data_os = {
-        'name': get_operating_system(connection),
-        'version': get_operating_system_version(connection),
-        'is_unix': is_unix_system(connection)
-    }
-
-    data_ssh = {
-        'is_connected': connection.is_connected,
-        'username': connection.user,
-        'host': connection.host,
-        'port': connection.port
-    }
-
-    data_grub = {
-        'windows_entry': get_windows_entry_in_grub(connection)
-    }
-
-    data_audio = {
-        'speakers': get_audio_config(connection).get('sinks'),
-        'microphones': get_audio_config(connection).get('sources')
-    }
-
-    data['os'] = data_os
-    data['ssh'] = data_ssh
-    data['grub'] = data_grub
-    data['audio'] = data_audio
-    data['monitors'] = get_monitors_config(connection)
-    data['bluetooth_devices'] = get_bluetooth_devices(connection)
-
-    return data
 
 
 def get_bluetooth_devices(connection: Connection, only_connected: bool = False, return_as_string: bool = False) -> []:

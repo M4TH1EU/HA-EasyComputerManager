@@ -9,7 +9,7 @@ from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 from paramiko.ssh_exception import AuthenticationException
 
-from . import utils
+from .computer import Computer
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,6 +40,8 @@ class Hub:
         self._name = host
         self._id = host.lower()
 
+        self.computer = Computer(host, "", username, password, port)
+
     @property
     def hub_id(self) -> str:
         """ID for dummy."""
@@ -48,8 +50,10 @@ class Hub:
     async def test_connection(self) -> bool:
         """Test connectivity to the computer is OK."""
         try:
-            return utils.test_connection(
-                utils.create_ssh_connection(self._host, self._username, self._password, self._port))
+            # TODO: check if reachable
+            _LOGGER.info("Testing connection to %s", self._host)
+            return True
+
         except AuthenticationException:
             return False
 
@@ -63,6 +67,7 @@ async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
 
     hub = Hub(hass, data["host"], data["username"], data["password"], data["port"])
 
+    _LOGGER.info("Validating configuration")
     if not await hub.test_connection():
         raise CannotConnect
 
