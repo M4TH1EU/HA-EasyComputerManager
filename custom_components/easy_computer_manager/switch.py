@@ -17,7 +17,6 @@ from homeassistant.const import (
     CONF_PORT,
     CONF_USERNAME, )
 from homeassistant.core import HomeAssistant, ServiceResponse, SupportsResponse
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import (
     device_registry as dr,
     entity_platform,
@@ -26,7 +25,7 @@ from homeassistant.helpers.config_validation import make_entity_service_schema
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import utils, computer_utils
+from . import computer_utils
 from .computer import Computer, OSType
 from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_TO_SLEEP, \
     SERVICE_START_COMPUTER_TO_WINDOWS, SERVICE_RESTART_COMPUTER, SERVICE_RESTART_TO_LINUX_FROM_WINDOWS, \
@@ -150,74 +149,72 @@ class ComputerSwitch(SwitchEntity):
     def is_on(self) -> bool:
         return self._state
 
-    def turn_on(self, **kwargs: Any) -> None:
-        self.computer.start()
+    async def turn_on(self, **kwargs: Any) -> None:
+        await self.computer.start()
 
         if self._attr_assumed_state:
             self._state = True
             self.async_write_ha_state()
 
-    def turn_off(self, **kwargs: Any) -> None:
-        self.computer.shutdown()
+    async def turn_off(self, **kwargs: Any) -> None:
+        await self.computer.shutdown()
 
         if self._attr_assumed_state:
             self._state = False
             self.async_write_ha_state()
 
     # Services
-    def restart_to_windows_from_linux(self) -> None:
+    async def restart_to_windows_from_linux(self) -> None:
         """Restart the computer to Windows from a running Linux by setting grub-reboot and restarting."""
-        self.computer.restart(OSType.LINUX, OSType.WINDOWS)
+        await self.computer.restart(OSType.LINUX, OSType.WINDOWS)
 
-    def restart_to_linux_from_windows(self) -> None:
+    async def restart_to_linux_from_windows(self) -> None:
         """Restart the computer to Linux from a running Windows by setting grub-reboot and restarting."""
-        self.computer.restart()
+        await self.computer.restart()
 
-    def put_computer_to_sleep(self) -> None:
-        self.computer.setup()
+    async def put_computer_to_sleep(self) -> None:
+        await self.computer.put_to_sleep()
 
-    def start_computer_to_windows(self) -> None:
+    async def start_computer_to_windows(self) -> None:
         async def wait_task():
             while not self.is_on:
-                pass
-                # await asyncio.sleep(3)
+                await asyncio.sleep(3)
 
-            self.computer.restart(OSType.LINUX, OSType.WINDOWS)
+            await self.computer.restart(OSType.LINUX, OSType.WINDOWS)
 
         """Start the computer to Linux, wait for it to boot, and then set grub-reboot and restart."""
-        self.computer.start()
+        await self.computer.start()
         self._hass.loop.create_task(wait_task())
 
-    def restart_computer(self) -> None:
-        self.computer.restart()
+    async def restart_computer(self) -> None:
+        await self.computer.restart()
 
-    def change_monitors_config(self, monitors_config: dict | None = None) -> None:
+    async def change_monitors_config(self, monitors_config: dict | None = None) -> None:
         """Change the monitors configuration using a YAML config file."""
-        self.computer.change_monitors_config(monitors_config)
+        await self.computer.change_monitors_config(monitors_config)
 
-    def steam_big_picture(self, action: str) -> None:
+    async def steam_big_picture(self, action: str) -> None:
         match action:
             case "start":
-                self.computer.start_steam_big_picture()
+                await self.computer.start_steam_big_picture()
             case "stop":
-                self.computer.stop_steam_big_picture()
+                await self.computer.stop_steam_big_picture()
             case "exit":
-                self.computer.exit_steam_big_picture()
+                await self.computer.exit_steam_big_picture()
 
-
-    def change_audio_config(self, volume: int | None = None, mute: bool | None = None, input_device: str | None = None,
+    async def change_audio_config(self, volume: int | None = None, mute: bool | None = None,
+                                  input_device: str | None = None,
                             output_device: str | None = None) -> None:
         """Change the audio configuration using a YAML config file."""
-        self.computer.change_audio_config(volume, mute, input_device, output_device)
+        await self.computer.change_audio_config(volume, mute, input_device, output_device)
 
-    def debug_info(self) -> ServiceResponse:
+    async def debug_info(self) -> ServiceResponse:
         """Prints debug info."""
-        return computer_utils.get_debug_info(self.computer)
+        return await computer_utils.get_debug_info(self.computer)
 
-
-    def update(self) -> None:
+    async def async_update(self) -> None:
         """Ping the computer to see if it is online and update the state."""
-        self._state = self.computer.is_on()
+        self._state = await self.computer.is_on()
 
         # Update the state attributes and the connection only if the computer is on
         if self._state:

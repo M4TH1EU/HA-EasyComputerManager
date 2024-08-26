@@ -1,7 +1,7 @@
 from custom_components.easy_computer_manager.computer import Computer
 
 
-def get_debug_info(computer: Computer):
+async def get_debug_info(computer: Computer):
     """Return debug information about the host system."""
 
     data = {
@@ -15,7 +15,7 @@ def get_debug_info(computer: Computer):
             'username': computer._username,
             'port': computer._port,
             'dualboot': computer._dualboot,
-            'is_on': computer.is_on()
+            'is_on': await computer.is_on()
         },
         'grub':{
             'windows_entry': computer.get_windows_entry_grub()

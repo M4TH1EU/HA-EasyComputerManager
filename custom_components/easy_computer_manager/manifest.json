@@ -2,8 +2,7 @@
   "domain": "easy_computer_manager",
   "name": "Easy Computer Manager",
   "codeowners": [
-    "@M4TH1EU",
-    "@ntilley905"
+    "@M4TH1EU"
   ],
   "config_flow": true,
   "dependencies": [],
@@ -11,10 +10,8 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/M4TH1EU/HA-EasyComputerManager/issues",
   "requirements": [
-    "construct==2.10.70",
     "wakeonlan==3.1.0",
-    "fabric2==3.2.2",
-    "paramiko==3.4.0"
+    "asyncssh==2.16.0"
   ],
-  "version": "1.3.0"
+  "version": "2.0.0"
 }
