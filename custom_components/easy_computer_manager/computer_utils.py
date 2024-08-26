@@ -1,9 +1,9 @@
 import re
 
-from custom_components.easy_computer_manager.computer import Computer
+from custom_components.easy_computer_manager import LOGGER
 
 
-async def format_debug_informations(computer: Computer):
+async def format_debug_informations(computer: 'Computer'): # importing Computer causes circular import (how to fix?)
     """Return debug information about the host system."""
 
     data = {
@@ -33,8 +33,18 @@ async def format_debug_informations(computer: Computer):
     return data
 
 
-def parse_gnome_monitors_config(config: str):
-    """Parse the GNOME monitors configuration."""
+def parse_gnome_monitors_config(config: str) -> list:
+    """
+    Parse the GNOME monitors configuration.
+
+    :param config:
+        The output of the gnome-monitor-config list command.
+
+    :type config: str
+
+    :returns: list
+        The parsed monitors configuration.
+    """
 
     monitors = []
     current_monitor = None
@@ -81,3 +91,113 @@ def parse_gnome_monitors_config(config: str):
         monitors.append(current_monitor)
 
     return monitors
+
+
+def parse_pactl_audio_config(config_speakers: str, config_microphones: str) -> dict[str, list]:
+    """
+    Parse the pactl audio configuration.
+
+    :param config_speakers:
+        The output of the pactl list sinks command.
+    :param config_microphones:
+        The output of the pactl list sources command.
+
+    :type config_speakers: str
+    :type config_microphones: str
+
+    :returns: dict
+        The parsed audio configuration.
+
+    """
+
+    config = {'speakers': [], 'microphones': []}
+
+    def parse_device_info(lines, device_type):
+        devices = []
+        current_device = {}
+
+        for line in lines:
+            if line.startswith(f"{device_type} #"):
+                if current_device and "Monitor" not in current_device['description']:
+                    devices.append(current_device)
+                current_device = {'id': int(re.search(r'#(\d+)', line).group(1))}
+            elif line.startswith("	Name:"):
+                current_device['name'] = line.split(":")[1].strip()
+            elif line.startswith("	State:"):
+                current_device['state'] = line.split(":")[1].strip()
+            elif line.startswith("	Description:"):
+                current_device['description'] = line.split(":")[1].strip()
+
+        if current_device:
+            devices.append(current_device)
+
+        return devices
+
+    config['speakers'] = parse_device_info(config_speakers.split('\n'), 'Sink')
+    config['microphones'] = parse_device_info(config_microphones.split('\n'), 'Source')
+
+    return config
+
+
+def parse_bluetoothctl(command: dict, connected_devices_only: bool = True,
+                       return_as_string: bool = False) -> list | str:
+    """Parse the bluetoothctl info command.
+
+    :param command:
+        The command output.
+    :param connected_devices_only:
+        Only return connected devices.
+        Will return all devices, connected or not, if False.
+    :param return_as_string:
+        Return the devices as a string (i.e. for device info in the UI).
+
+    :type command: dict
+    :type connected_devices_only: bool
+    :type return_as_string: bool
+
+    :returns: str | list
+        The parsed bluetooth devices.
+
+    """
+
+    if command.get('return_code') != 0:
+        if command.get("output").__contains__("Missing device address argument"):  # Means no devices are connected
+            return "" if return_as_string else []
+        else:
+            LOGGER.warning(f"Cannot retrieve bluetooth devices, make sure bluetoothctl is installed")
+            return "" if return_as_string else []
+
+    devices = []
+    current_device = None
+
+    for line in command.get("output").split('\n'):
+        if line.startswith('Device'):
+            if current_device is not None:
+                devices.append({
+                    "address": current_device,
+                    "name": current_name,
+                    "connected": current_connected
+                })
+            current_device = line.split()[1]
+            current_name = None
+            current_connected = None
+        elif 'Name:' in line:
+            current_name = line.split(': ', 1)[1]
+        elif 'Connected:' in line:
+            current_connected = line.split(': ')[1] == 'yes'
+
+    # Add the last device if any
+    if current_device is not None:
+        devices.append({
+            "address": current_device,
+            "name": current_name,
+            "connected": current_connected
+        })
+
+    if connected_devices_only:
+        devices = [device for device in devices if device["connected"] == "yes"]
+
+    if return_as_string:
+        devices = "; ".join([f"{device['name']} ({device['address']})" for device in devices])
+
+    return devices

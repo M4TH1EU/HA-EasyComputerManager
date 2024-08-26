@@ -45,10 +45,10 @@ ACTIONS = {
         "linux": ["gnome-monitor-config list"]
     },
     "get_speakers": {
-        "linux": ["pactl list sinks"]
+        "linux": ["LANG=en_US.UTF-8 pactl list sinks"]
     },
     "get_microphones": {
-        "linux": ["pactl list sources"]
+        "linux": ["LANG=en_US.UTF-8 pactl list sources"]
     },
     "get_bluetooth_devices": {
         "exit": False,
