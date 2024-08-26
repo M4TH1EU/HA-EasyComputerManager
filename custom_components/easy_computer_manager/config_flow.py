@@ -7,7 +7,6 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
-from paramiko.ssh_exception import AuthenticationException
 
 from .computer import Computer
 from .const import DOMAIN
@@ -54,7 +53,7 @@ class Hub:
             _LOGGER.info("Testing connection to %s", self._host)
             return True
 
-        except AuthenticationException:
+        except Exception:
             return False
 
 
@@ -86,7 +85,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 info = await validate_input(self.hass, user_input)
                 return self.async_create_entry(title=info["title"], data=user_input)
-            except (AuthenticationException, CannotConnect, InvalidHost) as ex:
+            except (CannotConnect, InvalidHost) as ex:
                 errors["base"] = str(ex)
             except Exception as ex:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception: %s", ex)

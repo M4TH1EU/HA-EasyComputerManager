@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import Any
 
 import voluptuous as vol
@@ -30,8 +29,6 @@ from .computer import Computer, OSType
 from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_TO_SLEEP, \
     SERVICE_START_COMPUTER_TO_WINDOWS, SERVICE_RESTART_COMPUTER, SERVICE_RESTART_TO_LINUX_FROM_WINDOWS, \
     SERVICE_CHANGE_MONITORS_CONFIG, SERVICE_STEAM_BIG_PICTURE, SERVICE_CHANGE_AUDIO_CONFIG, SERVICE_DEBUG_INFO, DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -225,6 +222,6 @@ class ComputerSwitch(SwitchEntity):
                 "operating_system_version": self.computer.get_operating_system_version(),
                 "mac_address": self.computer.mac,
                 "ip_address": self.computer.host,
-                "connected_devices": self.computer.get_bluetooth_devices(as_str=True),
+                "connected_devices": self.computer.get_bluetooth_devices(return_as_string=True),
             }
 

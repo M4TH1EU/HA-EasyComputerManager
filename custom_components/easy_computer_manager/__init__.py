@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 
 from .const import DOMAIN, SERVICE_SEND_MAGIC_PACKET, SERVICE_CHANGE_MONITORS_CONFIG
 
-_LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 WAKE_ON_LAN_SEND_MAGIC_PACKET_SCHEMA = vol.Schema({
     vol.Required(CONF_MAC): cv.string,
@@ -40,7 +40,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if broadcast_port is not None:
             service_kwargs["port"] = broadcast_port
 
-        _LOGGER.info(
+        LOGGER.info(
             "Sending magic packet to MAC %s (broadcast: %s, port: %s)",
             mac_address,
             broadcast_address,

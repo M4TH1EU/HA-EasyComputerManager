@@ -43,5 +43,15 @@ ACTIONS = {
     },
     "get_monitors_config": {
         "linux": ["gnome-monitor-config list"]
+    },
+    "get_speakers": {
+        "linux": ["pactl list sinks"]
+    },
+    "get_microphones": {
+        "linux": ["pactl list sources"]
+    },
+    "get_bluetooth_devices": {
+        "exit": False,
+        "linux": ["bluetoothctl info"]
     }
 }
