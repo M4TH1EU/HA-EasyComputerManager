@@ -42,11 +42,21 @@ ACTIONS = {
                   "sudo awk -F \"'\" '/windows/ {print $2}' /boot/grub2/grub.cfg"]
     },
     "set_grub_entry": {
-        "params": ["grub-entry"],
-        "linux": ["sudo grub-reboot %grub-entry%", "sudo grub2-reboot %grub-entry%"]
+        "linux": {
+            "commands": ["sudo grub-reboot %grub-entry%", "sudo grub2-reboot %grub-entry%"],
+            "params": ["grub-entry"],
+        }
     },
     "get_monitors_config": {
         "linux": ["gnome-monitor-config list"]
+    },
+    "set_monitors_config": {
+        "linux": {
+            "gnome": {
+                "command": "gnome-monitor-config set %args%",
+                "params": ["args"]
+            }
+        }
     },
     "get_speakers": {
         "linux": ["LANG=en_US.UTF-8 pactl list sinks"]
@@ -55,7 +65,9 @@ ACTIONS = {
         "linux": ["LANG=en_US.UTF-8 pactl list sources"]
     },
     "get_bluetooth_devices": {
-        "exit": False,
-        "linux": ["bluetoothctl info"]
+        "linux": {
+            "command": "bluetoothctl info",
+            "raise_on_error": False,
+        }
     }
 }

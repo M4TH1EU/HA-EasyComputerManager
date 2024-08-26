@@ -7,8 +7,9 @@ from wakeonlan import send_magic_packet
 
 from custom_components.easy_computer_manager import const, LOGGER
 from custom_components.easy_computer_manager.computer.common import OSType, CommandOutput
-from custom_components.easy_computer_manager.computer.utils import parse_gnome_monitors_output, \
-    parse_pactl_output, parse_bluetoothctl
+from custom_components.easy_computer_manager.computer.formatter import format_gnome_monitors_args
+from custom_components.easy_computer_manager.computer.parser import parse_gnome_monitors_output, parse_pactl_output, \
+    parse_bluetoothctl
 
 
 class Computer:
@@ -66,7 +67,7 @@ class Computer:
             self.operating_system_version = (await self.run_action("operating_system_version")).output
 
         async def update_desktop_environment():
-            self.desktop_environment = (await self.run_action("desktop_environment")).output
+            self.desktop_environment = (await self.run_action("desktop_environment")).output.lower()
 
         async def update_windows_entry_grub():
             self.windows_entry_grub = (await self.run_action("get_windows_entry_grub")).output
@@ -111,6 +112,14 @@ class Computer:
         uname_result = await self.run_manually("uname")
         return OSType.LINUX if uname_result.successful() else OSType.WINDOWS
 
+    def is_windows(self) -> bool:
+        """Check if the computer is running Windows."""
+        return self.operating_system == OSType.WINDOWS
+
+    def is_linux(self) -> bool:
+        """Check if the computer is running Linux."""
+        return self.operating_system == OSType.LINUX
+
     async def is_on(self, timeout: int = 1) -> bool:
         """Check if the computer is on by pinging it."""
         ping_cmd = ["ping", "-c", "1", "-W", str(timeout), str(self.host)]
@@ -138,14 +147,17 @@ class Computer:
         """Put the computer to sleep."""
         await self.run_action("sleep")
 
-    async def change_monitors_config(self, monitors_config: Dict[str, Any]) -> None:
+    async def set_monitors_config(self, monitors_config: Dict[str, Any]) -> None:
         """Change the monitors configuration."""
-        # Implementation needed
-        pass
+        if self.is_linux():
+            # TODO: other DE support
+            if self.desktop_environment == 'gnome':
+                await self.run_action("set_monitors_config",
+                                      params={"args": format_gnome_monitors_args(monitors_config)})
 
-    async def change_audio_config(self, volume: int | None = None, mute: bool | None = None,
-                                  input_device: str | None = None,
-                                  output_device: str | None = None) -> None:
+    async def set_audio_config(self, volume: int | None = None, mute: bool | None = None,
+                               input_device: str | None = None,
+                               output_device: str | None = None) -> None:
         """Change the audio configuration."""
         # Implementation needed
         pass
@@ -155,57 +167,63 @@ class Computer:
         # Implementation needed
         pass
 
-    async def start_steam_big_picture(self) -> None:
-        """Start Steam Big Picture mode."""
+    async def steam_big_picture(self, action: str) -> None:
+        """Start, stop or exit Steam Big Picture mode."""
         # Implementation needed
         pass
 
-    async def stop_steam_big_picture(self) -> None:
-        """Stop Steam Big Picture mode."""
-        # Implementation needed
-        pass
-
-    async def exit_steam_big_picture(self) -> None:
-        """Exit Steam Big Picture mode."""
-        # Implementation needed
-        pass
-
-    async def run_action(self, action: str, params: Dict[str, Any] = None, exit: bool = None) -> CommandOutput:
+    async def run_action(self, id: str, params=None, raise_on_error: bool = None) -> CommandOutput:
         """Run a predefined command via SSH."""
         if params is None:
             params = {}
-
-        if action not in const.ACTIONS:
+        if id not in const.ACTIONS:
             return CommandOutput("", 1, "", "Action not found")
 
-        command_template = const.ACTIONS[action]
+        action = const.ACTIONS[id]
 
-        if "params" in command_template and sorted(command_template["params"]) != sorted(params.keys()):
-            raise ValueError(f"Invalid parameters for action: {action}")
+        if self.operating_system.lower() in action:
+            raise_on_error = action.get("raise_on_error", raise_on_error)
 
-        if "exit" in command_template and exit is None:
-            exit = command_template["exit"]
+            os_data = action.get(self.operating_system.lower())
+            if isinstance(os_data, list):
+                commands = os_data
+                req_params = []
+            elif isinstance(os_data, dict):
+                if "command" in os_data or "commands" in os_data:
+                    commands = os_data.get("commands", [os_data.get("command")])
+                    req_params = os_data.get("params", [])
+                    raise_on_error = os_data.get("raise_on_error", raise_on_error)
+                elif self.desktop_environment in os_data:
+                    commands = os_data.get(self.desktop_environment).get("commands", [
+                        os_data.get(self.desktop_environment).get("command")])
+                    req_params = os_data.get(self.desktop_environment).get("params", [])
+                    raise_on_error = os_data.get(self.desktop_environment).get("raise_on_error", raise_on_error)
+                else:
+                    raise ValueError(f"Action {id} not supported for DE: {self.desktop_environment}")
+            else:
+                raise ValueError(f"Action {id} misconfigured/bad format")
 
-        commands = command_template.get(self.operating_system.lower())
-        if not commands:
-            raise ValueError(f"Action not supported for OS: {self.operating_system}")
+            if sorted(req_params) != sorted(params.keys()):
+                raise ValueError(f"Invalid/missing parameters for action: {id}")
 
-        command_result = None
-        for command in commands:
-            for param, value in params.items():
-                command = command.replace(f"%{param}%", value)
+            command_result = None
+            for command in commands:
+                for param, value in params.items():
+                    command = command.replace(f"%{param}%", value)
 
-            command_result = await self.run_manually(command)
-            if command_result.successful():
-                LOGGER.debug(f"Command successful: {command}")
-                return command_result
+                command_result = await self.run_manually(command)
+                if command_result.successful():
+                    LOGGER.debug(f"Command successful: {command}")
+                    return command_result
+                else:
+                    LOGGER.debug(f"Command failed (raise: {raise_on_error}) : {command}")
+                    if raise_on_error:
+                        raise ValueError(f"Command failed: {command}")
 
-            LOGGER.debug(f"Command failed: {command}")
+            return command_result
 
-        if exit:
-            raise ValueError(f"Failed to run action: {action}")
-
-        return command_result
+        else:
+            raise ValueError(f"Action {id} not supported for OS: {self.operating_system}")
 
     async def run_manually(self, command: str) -> CommandOutput:
         """Run a custom command manually via SSH."""
