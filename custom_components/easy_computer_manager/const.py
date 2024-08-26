@@ -22,8 +22,7 @@ ACTIONS = {
         "linux": ["awk -F'=' '/^NAME=|^VERSION=/{gsub(/\"/, \"\", $2); printf $2\" \"}\' /etc/os-release && echo", "lsb_release -a | awk '/Description/ {print $2, $3, $4}'"]
     },
     "desktop_environment": {
-        "linux": [
-            "echo \"${XDG_CURRENT_DESKTOP:-${DESKTOP_SESSION:-$(basename $(grep -Eo \'exec .*(startx|xinitrc)\' ~/.xsession 2>/dev/null | awk \'{print $2}\'))}}\""],
+        "linux": ["for session in $(ls /usr/bin/*session 2>/dev/null); do basename $session | sed 's/-session//'; done | grep -E 'gnome|kde|xfce|mate|lxde|cinnamon|budgie|unity' | head -n 1"],
         "windows": ["echo Windows"]
     },
     "shutdown": {
