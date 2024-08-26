@@ -13,7 +13,7 @@ SERVICE_CHANGE_AUDIO_CONFIG = "change_audio_config"
 SERVICE_DEBUG_INFO = "debug_info"
 
 
-COMMANDS = {
+ACTIONS = {
     "operating_system": {
         "linux": ["uname"]
     },
@@ -40,5 +40,8 @@ COMMANDS = {
     "set_grub_entry": {
         "params": ["grub-entry"],
         "linux": ["sudo grub-reboot %grub-entry%", "sudo grub2-reboot %grub-entry%"]
+    },
+    "get_monitors_config": {
+        "linux": ["gnome-monitor-config list"]
     }
 }

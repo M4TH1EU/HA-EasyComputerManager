@@ -45,27 +45,32 @@ class Computer:
                 port=self._port,
                 known_hosts=None
             )
+            # TODO: implement key auth client_keys=['my_ssh_key'] (mixed field detect if key or pass)
+            asyncssh.set_log_level("ERROR")
             return client
         except (OSError, asyncssh.Error) as exc:
             _LOGGER.error(f"SSH connection failed: {exc}")
             return None
 
-    async def _close_ssh_connection(self, client: asyncssh.SSHClientConnection) -> None:
+    async def _close_ssh_connection(self) -> None:
         """Close the SSH connection."""
-        client.close()
+        if self._connection is not None:
+            self._connection.close()
+            await self._connection.wait_closed()
 
     async def update(self) -> None:
         """Setup method that opens an SSH connection and runs setup commands asynchronously."""
 
         # Open SSH connection or renew it if it is closed
         if self._connection is None or self._connection.is_closed:
+            await self._close_ssh_connection()
             self._connection = await self._open_ssh_connection()
 
         self._operating_system = OSType.LINUX if (await self.run_manually("uname")).get(
             "return_code") == 0 else OSType.WINDOWS  # TODO: improve this
         self._operating_system_version = (await self.run_action("operating_system_version")).get("output")
         self._windows_entry_grub = (await self.run_action("get_windows_entry_grub")).get("output")
-        self._monitors_config = {}
+        self._monitors_config = (await self.run_action("get_monitors_config")).get("output")
         self._audio_config = {'speakers': None, 'microphones': None}
         self._bluetooth_devices = {}
 
@@ -155,8 +160,8 @@ class Computer:
         if params is None:
             params = {}
 
-        if action in const.COMMANDS:
-            command_template = const.COMMANDS[action]
+        if action in const.ACTIONS:
+            command_template = const.ACTIONS[action]
 
             # Check if the command has the required parameters
             if "params" in command_template:

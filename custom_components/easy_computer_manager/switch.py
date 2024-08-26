@@ -210,7 +210,7 @@ class ComputerSwitch(SwitchEntity):
 
     async def debug_info(self) -> ServiceResponse:
         """Prints debug info."""
-        return await computer_utils.get_debug_info(self.computer)
+        return await computer_utils.format_debug_informations(self.computer)
 
     async def async_update(self) -> None:
         """Ping the computer to see if it is online and update the state."""
