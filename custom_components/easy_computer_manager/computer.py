@@ -1,8 +1,10 @@
 import asyncio
 
 import asyncssh
-from custom_components.easy_computer_manager import const, _LOGGER
+from asyncssh import SSHClientConnection
 from wakeonlan import send_magic_packet
+
+from custom_components.easy_computer_manager import const, _LOGGER
 
 
 class OSType:
@@ -29,6 +31,8 @@ class Computer:
         self._audio_config = None
         self._bluetooth_devices = None
 
+        self._connection: SSHClientConnection | None = None
+
         asyncio.create_task(self.update())
 
     async def _open_ssh_connection(self) -> asyncssh.SSHClientConnection:
@@ -52,9 +56,10 @@ class Computer:
 
     async def update(self) -> None:
         """Setup method that opens an SSH connection and runs setup commands asynchronously."""
-        client = await self._open_ssh_connection()
-        if not client:
-            return
+
+        # Open SSH connection or renew it if it is closed
+        if self._connection is None or self._connection.is_closed:
+            self._connection = await self._open_ssh_connection()
 
         self._operating_system = OSType.LINUX if (await self.run_manually("uname")).get(
             "return_code") == 0 else OSType.WINDOWS  # TODO: improve this
@@ -63,8 +68,6 @@ class Computer:
         self._monitors_config = {}
         self._audio_config = {'speakers': None, 'microphones': None}
         self._bluetooth_devices = {}
-
-        await self._close_ssh_connection(client)
 
     # Getters
     async def is_on(self, timeout: int = 1) -> bool:
@@ -188,13 +191,7 @@ class Computer:
     async def run_manually(self, command: str) -> dict:
         """Run a command manually (not from predefined commands)."""
 
-        # Open SSH connection, execute command, and close connection
-        client = await self._open_ssh_connection()
-        if not client:
-            return {"output": "", "error": "SSH connection failed", "return_code": 1}
-
-        result = await client.run(command)
-        await self._close_ssh_connection(client)
+        result = await self._connection.run(command)
 
         return {"output": result.stdout, "error": result.stderr,
                 "return_code": result.exit_status}

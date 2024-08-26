@@ -216,6 +216,8 @@ class ComputerSwitch(SwitchEntity):
         """Ping the computer to see if it is online and update the state."""
         self._state = await self.computer.is_on()
 
+        await self.computer.update()
+
         # Update the state attributes and the connection only if the computer is on
         if self._state:
             self._attr_extra_state_attributes = {
