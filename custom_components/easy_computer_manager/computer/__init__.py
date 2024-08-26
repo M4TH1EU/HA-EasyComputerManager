@@ -1,5 +1,4 @@
 import asyncio
-from enum import Enum
 from typing import Optional, Dict, Any
 
 import asyncssh
@@ -7,14 +6,9 @@ from asyncssh import SSHClientConnection
 from wakeonlan import send_magic_packet
 
 from custom_components.easy_computer_manager import const, LOGGER
-from custom_components.easy_computer_manager.computer_utils import parse_gnome_monitors_config, \
-    parse_pactl_audio_config, parse_bluetoothctl
-
-
-class OSType(str, Enum):
-    WINDOWS = "windows"
-    LINUX = "linux"
-    MACOS = "macos"
+from custom_components.easy_computer_manager.computer.common import OSType, CommandOutput
+from custom_components.easy_computer_manager.computer.utils import parse_gnome_monitors_output, \
+    parse_pactl_output, parse_bluetoothctl
 
 
 class Computer:
@@ -23,17 +17,18 @@ class Computer:
         """Initialize the Computer object."""
         self.host = host
         self.mac = mac
-        self._username = username
+        self.username = username
         self._password = password
-        self._port = port
-        self._dualboot = dualboot
+        self.port = port
+        self.dualboot = dualboot
 
-        self._operating_system: Optional[OSType] = None
-        self._operating_system_version: Optional[str] = None
-        self._windows_entry_grub: Optional[str] = None
-        self._monitors_config: Optional[Dict[str, Any]] = None
-        self._audio_config: Dict[str, Optional[Dict]] = {}
-        self._bluetooth_devices: Dict[str, Any] = {}
+        self.operating_system: Optional[OSType] = None
+        self.operating_system_version: Optional[str] = None
+        self.desktop_environment: Optional[str] = None
+        self.windows_entry_grub: Optional[str] = None
+        self.monitors_config: Optional[Dict[str, Any]] = None
+        self.audio_config: Dict[str, Optional[Dict]] = {}
+        self.bluetooth_devices: Dict[str, Any] = {}
 
         self._connection: Optional[SSHClientConnection] = None
 
@@ -44,9 +39,9 @@ class Computer:
         try:
             client = await asyncssh.connect(
                 self.host,
-                username=self._username,
+                username=self.username,
                 password=self._password,
-                port=self._port,
+                port=self.port,
                 known_hosts=None
             )
             asyncssh.set_log_level("ERROR")
@@ -65,43 +60,47 @@ class Computer:
         await self._renew_connection()
 
         async def update_operating_system():
-            self._operating_system = await self._detect_operating_system()
+            self.operating_system = await self._detect_operating_system()
 
         async def update_operating_system_version():
-            self._operating_system_version = (await self.run_action("operating_system_version")).get("output")
+            self.operating_system_version = (await self.run_action("operating_system_version")).output
+
+        async def update_desktop_environment():
+            self.desktop_environment = (await self.run_action("desktop_environment")).output
 
         async def update_windows_entry_grub():
-            self._windows_entry_grub = (await self.run_action("get_windows_entry_grub")).get("output")
+            self.windows_entry_grub = (await self.run_action("get_windows_entry_grub")).output
 
         async def update_monitors_config():
-            monitors_config = (await self.run_action("get_monitors_config")).get("output")
-            if self._operating_system == OSType.LINUX:
+            monitors_config = (await self.run_action("get_monitors_config")).output
+            if self.operating_system == OSType.LINUX:
                 # TODO: add compatibility for KDE/others
-                self._monitors_config = parse_gnome_monitors_config(monitors_config)
-            elif self._operating_system == OSType.WINDOWS:
+                self.monitors_config = parse_gnome_monitors_output(monitors_config)
+            elif self.operating_system == OSType.WINDOWS:
                 # TODO: implement for Windows
                 pass
 
         async def update_audio_config():
-            speakers_config = (await self.run_action("get_speakers")).get("output")
-            microphones_config = (await self.run_action("get_microphones")).get("output")
+            speakers_config = (await self.run_action("get_speakers")).output
+            microphones_config = (await self.run_action("get_microphones")).output
 
-            if self._operating_system == OSType.LINUX:
-                self._audio_config = parse_pactl_audio_config(speakers_config, microphones_config)
-            elif self._operating_system == OSType.WINDOWS:
+            if self.operating_system == OSType.LINUX:
+                self.audio_config = parse_pactl_output(speakers_config, microphones_config)
+            elif self.operating_system == OSType.WINDOWS:
                 # TODO: implement for Windows
                 pass
 
         async def update_bluetooth_devices():
             bluetooth_config = await self.run_action("get_bluetooth_devices")
-            if self._operating_system == OSType.LINUX:
-                self._bluetooth_devices = parse_bluetoothctl(bluetooth_config)
-            elif self._operating_system == OSType.WINDOWS:
+            if self.operating_system == OSType.LINUX:
+                self.bluetooth_devices = parse_bluetoothctl(bluetooth_config)
+            elif self.operating_system == OSType.WINDOWS:
                 # TODO: implement for Windows
                 pass
 
         await update_operating_system()
         await update_operating_system_version()
+        await update_desktop_environment()
         await update_windows_entry_grub()
         await update_monitors_config()
         await update_audio_config()
@@ -110,7 +109,7 @@ class Computer:
     async def _detect_operating_system(self) -> OSType:
         """Detect the operating system of the computer."""
         uname_result = await self.run_manually("uname")
-        return OSType.LINUX if uname_result.get("return_code") == 0 else OSType.WINDOWS
+        return OSType.LINUX if uname_result.successful() else OSType.WINDOWS
 
     async def is_on(self, timeout: int = 1) -> bool:
         """Check if the computer is on by pinging it."""
@@ -122,38 +121,6 @@ class Computer:
         )
         await proc.communicate()
         return proc.returncode == 0
-
-    def get_operating_system(self) -> OSType:
-        """Get the operating system of the computer."""
-        return self._operating_system
-
-    def get_operating_system_version(self) -> str:
-        """Get the operating system version of the computer."""
-        return self._operating_system_version
-
-    def get_windows_entry_grub(self) -> str:
-        """Get the Windows entry in the GRUB configuration file."""
-        return self._windows_entry_grub
-
-    def get_monitors_config(self) -> Dict[str, Any]:
-        """Get the monitors configuration of the computer."""
-        return self._monitors_config
-
-    def get_speakers(self) -> dict:
-        """Get the speakers configuration of the computer."""
-        return self._audio_config.get("speakers")
-
-    def get_microphones(self) -> dict:
-        """Get the microphones configuration of the computer."""
-        return self._audio_config.get("microphones")
-
-    def get_bluetooth_devices(self, return_as_string: bool = False) -> Dict[str, Any]:
-        """Get the Bluetooth devices of the computer."""
-        return self._bluetooth_devices
-
-    def is_dualboot(self) -> bool:
-        """Check if the computer is dualboot."""
-        return self._dualboot
 
     async def start(self) -> None:
         """Start the computer."""
@@ -203,13 +170,13 @@ class Computer:
         # Implementation needed
         pass
 
-    async def run_action(self, action: str, params: Dict[str, Any] = None, exit: bool = None) -> Dict[str, Any]:
+    async def run_action(self, action: str, params: Dict[str, Any] = None, exit: bool = None) -> CommandOutput:
         """Run a predefined command via SSH."""
         if params is None:
             params = {}
 
         if action not in const.ACTIONS:
-            return {"output": "", "error": "Action not found", "return_code": 1}
+            return CommandOutput("", 1, "", "Action not found")
 
         command_template = const.ACTIONS[action]
 
@@ -219,32 +186,32 @@ class Computer:
         if "exit" in command_template and exit is None:
             exit = command_template["exit"]
 
-        commands = command_template.get(self._operating_system)
+        commands = command_template.get(self.operating_system.lower())
         if not commands:
-            raise ValueError(f"Action not supported for OS: {self._operating_system}")
+            raise ValueError(f"Action not supported for OS: {self.operating_system}")
 
-        result = None
+        command_result = None
         for command in commands:
             for param, value in params.items():
                 command = command.replace(f"%{param}%", value)
 
-            result = await self.run_manually(command)
-            if result['return_code'] == 0:
+            command_result = await self.run_manually(command)
+            if command_result.successful():
                 LOGGER.debug(f"Command successful: {command}")
-                return result
+                return command_result
 
             LOGGER.debug(f"Command failed: {command}")
 
         if exit:
             raise ValueError(f"Failed to run action: {action}")
 
-        return result
+        return command_result
 
-    async def run_manually(self, command: str) -> Dict[str, Any]:
+    async def run_manually(self, command: str) -> CommandOutput:
         """Run a custom command manually via SSH."""
         if not self._connection:
             await self._connect()
 
         result = await self._connection.run(command)
 
-        return {"output": result.stdout, "error": result.stderr, "return_code": result.exit_status}
+        return CommandOutput(command, result.exit_status, result.stdout, result.stderr)

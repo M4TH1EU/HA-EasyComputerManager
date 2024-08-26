@@ -1,39 +1,41 @@
 import re
 
 from custom_components.easy_computer_manager import LOGGER
+from custom_components.easy_computer_manager.computer.common import CommandOutput
 
 
-async def format_debug_informations(computer: 'Computer'): # importing Computer causes circular import (how to fix?)
+async def format_debug_information(computer: 'Computer'):  # importing Computer causes circular import (how to fix?)
     """Return debug information about the host system."""
 
     data = {
         'os': {
-            'name': computer.get_operating_system(),
-            'version': computer.get_operating_system_version(),
+            'name': computer.operating_system,
+            'version': computer.operating_system_version,
+            'desktop_environment': computer.desktop_environment
         },
         'connection':{
             'host': computer.host,
             'mac': computer.mac,
-            'username': computer._username,
-            'port': computer._port,
-            'dualboot': computer._dualboot,
+            'username': computer.username,
+            'port': computer.port,
+            'dualboot': computer.dualboot,
             'is_on': await computer.is_on()
         },
         'grub':{
-            'windows_entry': computer.get_windows_entry_grub()
+            'windows_entry': computer.windows_entry_grub
         },
         'audio':{
-            'speakers': computer.get_speakers(),
-            'microphones': computer.get_microphones()
+            'speakers': computer.audio_config.get('speakers'),
+            'microphones': computer.audio_config.get('microphones')
         },
-        'monitors': computer.get_monitors_config(),
-        'bluetooth_devices': computer.get_bluetooth_devices()
+        'monitors': computer.monitors_config,
+        'bluetooth_devices': computer.bluetooth_devices
     }
 
     return data
 
 
-def parse_gnome_monitors_config(config: str) -> list:
+def parse_gnome_monitors_output(config: str) -> list:
     """
     Parse the GNOME monitors configuration.
 
@@ -93,7 +95,7 @@ def parse_gnome_monitors_config(config: str) -> list:
     return monitors
 
 
-def parse_pactl_audio_config(config_speakers: str, config_microphones: str) -> dict[str, list]:
+def parse_pactl_output(config_speakers: str, config_microphones: str) -> dict[str, list]:
     """
     Parse the pactl audio configuration.
 
@@ -139,7 +141,7 @@ def parse_pactl_audio_config(config_speakers: str, config_microphones: str) -> d
     return config
 
 
-def parse_bluetoothctl(command: dict, connected_devices_only: bool = True,
+def parse_bluetoothctl(command: CommandOutput, connected_devices_only: bool = True,
                        return_as_string: bool = False) -> list | str:
     """Parse the bluetoothctl info command.
 
@@ -148,20 +150,17 @@ def parse_bluetoothctl(command: dict, connected_devices_only: bool = True,
     :param connected_devices_only:
         Only return connected devices.
         Will return all devices, connected or not, if False.
-    :param return_as_string:
-        Return the devices as a string (i.e. for device info in the UI).
 
-    :type command: dict
+    :type command: :class: CommandOutput
     :type connected_devices_only: bool
-    :type return_as_string: bool
 
     :returns: str | list
         The parsed bluetooth devices.
 
     """
 
-    if command.get('return_code') != 0:
-        if command.get("output").__contains__("Missing device address argument"):  # Means no devices are connected
+    if not command.successful():
+        if command.output.__contains__("Missing device address argument"):  # Means no devices are connected
             return "" if return_as_string else []
         else:
             LOGGER.warning(f"Cannot retrieve bluetooth devices, make sure bluetoothctl is installed")
@@ -170,7 +169,7 @@ def parse_bluetoothctl(command: dict, connected_devices_only: bool = True,
     devices = []
     current_device = None
 
-    for line in command.get("output").split('\n'):
+    for line in command.output.split('\n'):
         if line.startswith('Device'):
             if current_device is not None:
                 devices.append({
@@ -196,8 +195,5 @@ def parse_bluetoothctl(command: dict, connected_devices_only: bool = True,
 
     if connected_devices_only:
         devices = [device for device in devices if device["connected"] == "yes"]
-
-    if return_as_string:
-        devices = "; ".join([f"{device['name']} ({device['address']})" for device in devices])
 
     return devices

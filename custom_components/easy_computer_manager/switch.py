@@ -24,8 +24,8 @@ from homeassistant.helpers.config_validation import make_entity_service_schema
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import computer_utils
-from .computer import Computer, OSType
+from .computer import OSType, Computer
+from .computer.utils import format_debug_information
 from .const import SERVICE_RESTART_TO_WINDOWS_FROM_LINUX, SERVICE_PUT_COMPUTER_TO_SLEEP, \
     SERVICE_START_COMPUTER_TO_WINDOWS, SERVICE_RESTART_COMPUTER, SERVICE_RESTART_TO_LINUX_FROM_WINDOWS, \
     SERVICE_CHANGE_MONITORS_CONFIG, SERVICE_STEAM_BIG_PICTURE, SERVICE_CHANGE_AUDIO_CONFIG, SERVICE_DEBUG_INFO, DOMAIN
@@ -134,7 +134,7 @@ class ComputerSwitch(SwitchEntity):
             name=self._attr_name,
             manufacturer="Generic",
             model="Computer",
-            sw_version=self.computer.get_operating_system_version(),
+            sw_version=self.computer.operating_system_version,
             connections={(dr.CONNECTION_NETWORK_MAC, self.computer.mac)},
         )
 
@@ -207,7 +207,7 @@ class ComputerSwitch(SwitchEntity):
 
     async def debug_info(self) -> ServiceResponse:
         """Prints debug info."""
-        return await computer_utils.format_debug_informations(self.computer)
+        return await format_debug_information(self.computer)
 
     async def async_update(self) -> None:
         """Ping the computer to see if it is online and update the state."""
@@ -218,10 +218,10 @@ class ComputerSwitch(SwitchEntity):
         # Update the state attributes and the connection only if the computer is on
         if self._state:
             self._attr_extra_state_attributes = {
-                "operating_system": self.computer.get_operating_system(),
-                "operating_system_version": self.computer.get_operating_system_version(),
+                "operating_system": self.computer.operating_system,
+                "operating_system_version": self.computer.operating_system_version,
                 "mac_address": self.computer.mac,
                 "ip_address": self.computer.host,
-                "connected_devices": self.computer.get_bluetooth_devices(return_as_string=True),
+                "connected_devices": self.computer.bluetooth_devices,
             }
 

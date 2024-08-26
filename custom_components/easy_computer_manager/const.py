@@ -21,6 +21,11 @@ ACTIONS = {
         "windows": ['for /f "tokens=1 delims=|" %i in (\'wmic os get Name ^| findstr /B /C:"Microsoft"\') do @echo %i'],
         "linux": ["awk -F'=' '/^NAME=|^VERSION=/{gsub(/\"/, \"\", $2); printf $2\" \"}\' /etc/os-release && echo", "lsb_release -a | awk '/Description/ {print $2, $3, $4}'"]
     },
+    "desktop_environment": {
+        "linux": [
+            "echo \"${XDG_CURRENT_DESKTOP:-${DESKTOP_SESSION:-$(basename $(grep -Eo \'exec .*(startx|xinitrc)\' ~/.xsession 2>/dev/null | awk \'{print $2}\'))}}\""],
+        "windows": ["echo Windows"]
+    },
     "shutdown": {
         "windows": ["shutdown /s /t 0", "wmic os where Primary=TRUE call Shutdown"],
         "linux": ["sudo shutdown -h now", "sudo init 0", "sudo systemctl poweroff"]
