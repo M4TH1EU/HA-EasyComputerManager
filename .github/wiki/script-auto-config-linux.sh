@@ -32,7 +32,7 @@ fi
 # Configure sudoers
 print_colored "$COLOR_BLUE" "Configuring sudoers..."
 echo -e "\n# Allow your user to execute specific commands without a password (for EasyComputerManager/HA)" | sudo tee -a /etc/sudoers > /dev/null
-echo "$USER_BEHIND_SUDO ALL=(ALL) NOPASSWD: /sbin/shutdown, /sbin/init, /usr/bin/systemctl, /usr/sbin/pm-suspend, /usr/bin/awk, /usr/sbin/grub-reboot, /usr/sbin/grub2-reboot" | sudo tee -a /etc/sudoers > /dev/null
+echo "$USER_BEHIND_SUDO ALL=(ALL) NOPASSWD: /sbin/shutdown, /sbin/init, /usr/sbin/pm-suspend, /usr/sbin/grub-reboot, /usr/sbin/grub2-reboot, /usr/bin/cat /etc/grub2.cfg, /usr/bin/cat /etc/grub.cfg" | sudo tee -a /etc/sudoers > /dev/null
 print_colored "$COLOR_GREEN" "Sudoers file configured successfully."
 
 # Firewall Configuration
@@ -51,16 +51,16 @@ DESKTOP_ENTRY_NAME="EasyComputerManager-AutoStart"
 DESKTOP_ENTRY_PATH="/home/$USER_BEHIND_SUDO/.config/autostart/$DESKTOP_ENTRY_NAME.desktop"
 
 # Create the desktop entry file for the Desktop Environment to autostart at login every reboot
-# cat > "$DESKTOP_ENTRY_PATH" <<EOF
-# [Desktop Entry]
-# Type=Application
-# Name=$DESKTOP_ENTRY_NAME
-# Exec=sh -c '$COMMANDS'
-# Hidden=false
-# NoDisplay=false
-# X-GNOME-Autostart-enabled=true
-# EOF
-# chmod +x "$DESKTOP_ENTRY_PATH"
+cat > "$DESKTOP_ENTRY_PATH" <<EOF
+[Desktop Entry]
+Type=Application
+Name=$DESKTOP_ENTRY_NAME
+Exec=sh -c '$COMMANDS'
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
+chmod +x "$DESKTOP_ENTRY_PATH"
 print_colored "$COLOR_GREEN" "Desktop entry created at $DESKTOP_ENTRY_PATH."
 
 print_colored "$COLOR_GREEN" "\nDone! Some features may require a reboot to work including:"

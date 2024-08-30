@@ -28,7 +28,11 @@ if dual-boot), adjusting audio configurations, changing monitor settings, and mo
 1. Install [HACS](https://hacs.xyz/) if not already installed.
 2. In Home Assistant, go to "HACS" in the sidebar.
 3. Click on "Integrations."
-4. Search for "easy_computer_manager" and click "Install."
+4. Click on the three dots in the top right corner and select "Custom repositories."
+5. Paste the following URL in the "Repo" field: https://github.com/M4TH1EU/HA-EasyComputerManager
+6. Select "Integration" from the "Category" dropdown.
+7. Click "Add."
+8. Search for "easy_computer_manager" and click "Install."
 
 ### Manually
 
@@ -37,7 +41,14 @@ if dual-boot), adjusting audio configurations, changing monitor settings, and mo
 3. Copy the "custom_components/easy_computer_manager" directory to the "config/custom_components/" directory in your
    Home Assistant instance.
 
-## Configuration
+# Preparing your computer (required)
+> [!CAUTION]
+> Before adding your computer to Home Assistant, ensure that it is properly configured. (See below)
+
+SEE WIKI
+
+
+## Add Computer to Home Assistant
 
 1. In Home Assistant, go to "Configuration" in the sidebar.
 2. Select "Integrations."

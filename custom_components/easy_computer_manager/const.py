@@ -27,19 +27,19 @@ ACTIONS = {
     },
     "shutdown": {
         "windows": ["shutdown /s /t 0", "wmic os where Primary=TRUE call Shutdown"],
-        "linux": ["sudo shutdown -h now", "sudo init 0", "sudo systemctl poweroff"]
+        "linux": ["sudo shutdown -h now", "sudo init 0", "systemctl poweroff"]
     },
     "restart": {
         "windows": ["shutdown /r /t 0", "wmic os where Primary=TRUE call Reboot"],
-        "linux": ["sudo shutdown -r now", "sudo init 6", "sudo systemctl reboot"]
+        "linux": ["sudo shutdown -r now", "sudo init 6", "systemctl reboot"]
     },
     "sleep": {
         "windows": ["shutdown /h /t 0", "rundll32.exe powrprof.dll,SetSuspendState Sleep"],
-        "linux": ["sudo systemctl suspend", "sudo pm-suspend"]
+        "linux": ["systemctl suspend", "sudo pm-suspend"]
     },
     "get_windows_entry_grub": {
-        "linux": ["sudo awk -F \"'\" '/windows/ {print $2}' /boot/grub/grub.cfg",
-                  "sudo awk -F \"'\" '/windows/ {print $2}' /boot/grub2/grub.cfg"]
+        "linux": ["sudo cat /etc/grub2.cfg | awk -F \"'\" '/windows/ {print $2}'",
+                  "sudo cat /etc/grub.cfg | awk -F \"'\" '/windows/ {print $2}'"]
     },
     "set_grub_entry": {
         "linux": {
