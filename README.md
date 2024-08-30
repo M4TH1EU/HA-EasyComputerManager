@@ -43,10 +43,9 @@ if dual-boot), adjusting audio configurations, changing monitor settings, and mo
 
 # Preparing your computer (required)
 > [!CAUTION]
-> Before adding your computer to Home Assistant, ensure that it is properly configured. (See below)
+> Before adding your computer to Home Assistant, ensure that it is properly configured.
 
-SEE WIKI
-
+**See wiki page [here](https://github.com/M4TH1EU/HA-EasyComputerManager/wiki/Prepare-your-computer).**
 
 ## Add Computer to Home Assistant
 
@@ -54,15 +53,21 @@ SEE WIKI
 2. Select "Integrations."
 3. Click the "+" button to add a new integration.
 4. Search for "Easy Computer Manager" and select it from the list.
-5. Follow the on-screen instructions to configure the integration, providing details such as the IP address, username,
-   and password for the computer you want to manage.
+5. Follow the on-screen instructions to configure the integration, providing details such as the IP address, mac-adress, username,
+   and password for the computer you want to add.
 6. Once configured, click "Finish" to add the computer to Home Assistant.
+
+> [!NOTE]
+> If you are managing a dual-boot computer, ensure that the "Dual boot system" checkbox is enabled during the configuration.
 
 ## Usage
 
 After adding your computer to Home Assistant, you can use the provided services to manage it remotely. Explore the
 available services in the Home Assistant "Services" tab or use automations to integrate Easy Computer Manager into your
 smart home setup.
+
+## Services
+A detailed list of available services and their parameters can be found in the wiki [here](https://github.com/M4TH1EU/HA-EasyComputerManager/wiki/Services).
 
 ## Troubleshooting
 
