@@ -7,7 +7,7 @@ from wakeonlan import send_magic_packet
 
 from custom_components.easy_computer_manager import const, LOGGER
 from custom_components.easy_computer_manager.computer.common import OSType, CommandOutput
-from custom_components.easy_computer_manager.computer.formatter import format_gnome_monitors_args
+from custom_components.easy_computer_manager.computer.formatter import format_gnome_monitors_args, format_pactl_commands
 from custom_components.easy_computer_manager.computer.parser import parse_gnome_monitors_output, parse_pactl_output, \
     parse_bluetoothctl
 
@@ -35,7 +35,7 @@ class Computer:
 
         asyncio.create_task(self.update())
 
-    async def _connect(self) -> None:
+    async def _connect(self, retried: bool = False) -> None:
         """Open an asynchronous SSH connection."""
         try:
             client = await asyncssh.connect(
@@ -48,7 +48,10 @@ class Computer:
             asyncssh.set_log_level("ERROR")
             self._connection = client
         except (OSError, asyncssh.Error) as exc:
-            raise ValueError(f"Failed to connect to {self.host}: {exc}")
+            if retried:
+                await self._connect(retried=True)
+            else:
+                raise ValueError(f"Failed to connect to {self.host}: {exc}")
 
     async def _renew_connection(self) -> None:
         """Renew the SSH connection if it is closed."""
@@ -159,8 +162,12 @@ class Computer:
                                input_device: str | None = None,
                                output_device: str | None = None) -> None:
         """Change the audio configuration."""
-        # Implementation needed
-        pass
+        if self.is_linux():
+            # TODO: other DE support
+            if self.desktop_environment == 'gnome':
+                pactl_commands = format_pactl_commands(self.audio_config, volume, mute, input_device, output_device)
+                for command in pactl_commands:
+                    await self.run_action("set_audio_config", params={"args": command})
 
     async def install_nircmd(self) -> None:
         """Install NirCmd tool (Windows specific)."""

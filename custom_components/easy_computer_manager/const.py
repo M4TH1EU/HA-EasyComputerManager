@@ -64,6 +64,12 @@ ACTIONS = {
     "get_microphones": {
         "linux": ["LANG=en_US.UTF-8 pactl list sources"]
     },
+    "set_audio_config": {
+        "linux": {
+            "command": "LANG=en_US.UTF-8 pactl %args%",
+            "params": ["args"]
+        }
+    },
     "get_bluetooth_devices": {
         "linux": {
             "command": "bluetoothctl info",

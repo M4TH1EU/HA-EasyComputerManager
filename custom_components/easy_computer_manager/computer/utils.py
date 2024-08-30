@@ -7,7 +7,7 @@ async def format_debug_information(computer: 'Computer'):  # importing Computer 
             'version': computer.operating_system_version,
             'desktop_environment': computer.desktop_environment
         },
-        'connection':{
+        'connection': {
             'host': computer.host,
             'mac': computer.mac,
             'username': computer.username,
@@ -15,10 +15,10 @@ async def format_debug_information(computer: 'Computer'):  # importing Computer 
             'dualboot': computer.dualboot,
             'is_on': await computer.is_on()
         },
-        'grub':{
+        'grub': {
             'windows_entry': computer.windows_entry_grub
         },
-        'audio':{
+        'audio': {
             'speakers': computer.audio_config.get('speakers'),
             'microphones': computer.audio_config.get('microphones')
         },
