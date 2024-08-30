@@ -171,13 +171,12 @@ class Computer:
 
     async def install_nircmd(self) -> None:
         """Install NirCmd tool (Windows specific)."""
-        # Implementation needed
-        pass
+        await self.run_action("install_nircmd", params={"download_url": "https://www.nirsoft.net/utils/nircmd.zip",
+                                                        "install_path": f"C:\\Users\\{self.username}\\AppData\\Local\\EasyComputerManager"})
 
     async def steam_big_picture(self, action: str) -> None:
         """Start, stop or exit Steam Big Picture mode."""
-        # Implementation needed
-        pass
+        await self.run_action(f"{action}_steam_big_picture")
 
     async def run_action(self, id: str, params=None, raise_on_error: bool = None) -> CommandOutput:
         """Run a predefined command via SSH."""

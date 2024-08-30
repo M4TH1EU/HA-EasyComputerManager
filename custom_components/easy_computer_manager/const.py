@@ -75,5 +75,23 @@ ACTIONS = {
             "command": "bluetoothctl info",
             "raise_on_error": False,
         }
-    }
+    },
+    "install_nirmcd": {
+        "windows": {
+            "command": "powershell -Command \"Invoke-WebRequest -Uri %download_url% -OutFile %install_path%\\nircmd.zip -UseBasicParsing; Expand-Archive %install_path%\\nircmd.zip -DestinationPath %install_path%; Remove-Item %install_path%\\nircmd.zip\"",
+            "params": ["download_url", "install_path"]
+        }
+    },
+    "start_steam_big_picture": {
+        "linux": "export WAYLAND_DISPLAY=wayland-0; export DISPLAY=:0; steam -bigpicture &",
+        "windows": "start steam://open/bigpicture"
+    },
+    "stop_steam_big_picture": {
+        "linux": "export WAYLAND_DISPLAY=wayland-0; export DISPLAY=:0; steam -shutdown &",
+        "windows": "C:\\Program Files (x86)\\Steam\\steam.exe -shutdown"
+    },
+    "exit_steam_big_picture": {
+        "linux": "",  # TODO: find a way to exit steam big picture
+        "windows": "nircmd win close title \"Steam Big Picture Mode\""
+    },
 }
