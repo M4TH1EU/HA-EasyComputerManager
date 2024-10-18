@@ -1,8 +1,6 @@
 import asyncio
 from typing import Optional, Dict, Any
 
-import asyncssh
-from asyncssh import SSHClientConnection
 from wakeonlan import send_magic_packet
 
 from custom_components.easy_computer_manager import const, LOGGER
@@ -10,12 +8,15 @@ from custom_components.easy_computer_manager.computer.common import OSType, Comm
 from custom_components.easy_computer_manager.computer.formatter import format_gnome_monitors_args, format_pactl_commands
 from custom_components.easy_computer_manager.computer.parser import parse_gnome_monitors_output, parse_pactl_output, \
     parse_bluetoothctl
+from custom_components.easy_computer_manager.computer.ssh_client import SSHClient
 
 
 class Computer:
     def __init__(self, host: str, mac: str, username: str, password: str, port: int = 22,
                  dualboot: bool = False) -> None:
         """Initialize the Computer object."""
+        self.initialized = False  # used to avoid duplicated ssh connections
+
         self.host = host
         self.mac = mac
         self.username = username
@@ -31,37 +32,11 @@ class Computer:
         self.audio_config: Dict[str, Optional[Dict]] = {}
         self.bluetooth_devices: Dict[str, Any] = {}
 
-        self._connection: Optional[SSHClientConnection] = None
-
-        asyncio.create_task(self.update())
-
-    async def _connect(self, retried: bool = False) -> None:
-        """Open an asynchronous SSH connection."""
-        try:
-            client = await asyncssh.connect(
-                self.host,
-                username=self.username,
-                password=self._password,
-                port=self.port,
-                known_hosts=None
-            )
-            asyncssh.set_log_level("ERROR")
-            self._connection = client
-        except (OSError, asyncssh.Error) as exc:
-            if retried:
-                await self._connect(retried=True)
-            else:
-                raise ValueError(f"Failed to connect to {self.host}: {exc}")
-
-    async def _renew_connection(self) -> None:
-        """Renew the SSH connection if it is closed."""
-        if self._connection is None or self._connection.is_closed:
-            self._connection = await self._connect()
+        self._connection: SSHClient = SSHClient(host, username, password, port)
+        asyncio.create_task(self._connection.connect(computer=self))
 
     async def update(self) -> None:
         """Update computer details."""
-
-        await self._renew_connection()
 
         async def update_operating_system():
             self.operating_system = await self._detect_operating_system()
@@ -102,13 +77,18 @@ class Computer:
                 # TODO: implement for Windows
                 pass
 
-        await update_operating_system()
-        await update_operating_system_version()
-        await update_desktop_environment()
-        await update_windows_entry_grub()
-        await update_monitors_config()
-        await update_audio_config()
-        await update_bluetooth_devices()
+        # Reconnect if connection is lost and init is already done
+        if self.initialized and not self._connection.is_connection_alive():
+            await self._connection.connect()
+
+        if self._connection.is_connection_alive():
+            await update_operating_system()
+            await update_operating_system_version()
+            await update_desktop_environment()
+            await update_windows_entry_grub()
+            await update_monitors_config()
+            await update_audio_config()
+            await update_bluetooth_devices()
 
     async def _detect_operating_system(self) -> OSType:
         """Detect the operating system of the computer."""
@@ -233,9 +213,6 @@ class Computer:
 
     async def run_manually(self, command: str) -> CommandOutput:
         """Run a custom command manually via SSH."""
-        if not self._connection:
-            await self._connect()
+        result = await self._connection.execute_command(command)
 
-        result = await self._connection.run(command)
-
-        return CommandOutput(command, result.exit_status, result.stdout, result.stderr)
+        return CommandOutput(command, result[0], result[1], result[2])
