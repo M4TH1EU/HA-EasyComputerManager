@@ -34,94 +34,83 @@ class Computer:
 
         self._connection: SSHClient = SSHClient(host, username, password, port)
         asyncio.create_task(self._connection.connect(computer=self))
-        # asyncio.create_task(self.update())
 
     async def update(self, state: Optional[bool] = True, timeout: Optional[int] = 2) -> None:
         """Update computer details."""
-
-        async def update_operating_system():
-            self.operating_system = await self._detect_operating_system()
-
-        async def update_operating_system_version():
-            self.operating_system_version = (await self.run_action("operating_system_version")).output
-
-        async def update_desktop_environment():
-            self.desktop_environment = (await self.run_action("desktop_environment")).output.lower()
-
-        async def update_windows_entry_grub():
-            self.windows_entry_grub = (await self.run_action("get_windows_entry_grub")).output
-
-        async def update_monitors_config():
-            monitors_config = (await self.run_action("get_monitors_config")).output
-            if self.operating_system == OSType.LINUX:
-                # TODO: add compatibility for KDE/others
-                self.monitors_config = parse_gnome_monitors_output(monitors_config)
-            elif self.operating_system == OSType.WINDOWS:
-                # TODO: implement for Windows
-                pass
-
-        async def update_audio_config():
-            speakers_config = (await self.run_action("get_speakers")).output
-            microphones_config = (await self.run_action("get_microphones")).output
-
-            if self.operating_system == OSType.LINUX:
-                self.audio_config = parse_pactl_output(speakers_config, microphones_config)
-            elif self.operating_system == OSType.WINDOWS:
-                # TODO: implement for Windows
-                pass
-
-        async def update_bluetooth_devices():
-            bluetooth_config = await self.run_action("get_bluetooth_devices")
-            if self.operating_system == OSType.LINUX:
-                self.bluetooth_devices = parse_bluetoothctl(bluetooth_config)
-            elif self.operating_system == OSType.WINDOWS:
-                # TODO: implement for Windows
-                pass
-
         if not state or not await self.is_on():
-            LOGGER.debug("ECM Computer is off, skipping update")
+            LOGGER.debug("Computer is off, skipping update")
             return
-        else:
-            # Wait for connection to be established before updating or give up after timeout
-            for i in range(timeout * 4):
-                if not self._connection.is_connection_alive():
-                    await asyncio.sleep(0.25)
-                else:
-                    break
-            else:
-                # Reconnect if connection is lost and init is already done
-                if self.initialized:
-                    await self._connection.connect()
 
-                    if not self._connection.is_connection_alive():
-                        LOGGER.debug(
-                            f"Computer seems ON but the SSH connection is dead (timeout={timeout}s), skipping update")
-                        return
-                else:
-                    LOGGER.debug(
-                        f"Computer seems ON but the SSH connection is dead (timeout={timeout}s), skipping update")
-                    return
+        # Ensure connection is established before updating
+        await self._ensure_connection_alive(timeout)
 
-            await update_operating_system()
-            await update_operating_system_version()
-            await update_desktop_environment()
-            await update_windows_entry_grub()
-            await update_monitors_config()
-            await update_audio_config()
-            await update_bluetooth_devices()
+        # Update tasks
+        await asyncio.gather(
+            self._update_operating_system(),
+            self._update_operating_system_version(),
+            self._update_desktop_environment(),
+            self._update_windows_entry_grub(),
+            self._update_monitors_config(),
+            self._update_audio_config(),
+            self._update_bluetooth_devices()
+        )
+
+    async def _ensure_connection_alive(self, timeout: int) -> None:
+        """Ensure the SSH connection is alive, reconnect if necessary."""
+        for _ in range(timeout * 4):
+            if self._connection.is_connection_alive():
+                return
+            await asyncio.sleep(0.25)
+
+        if not self._connection.is_connection_alive():
+            LOGGER.debug(f"Reconnecting to {self.host}")
+            await self._connection.connect()
+            if not self._connection.is_connection_alive():
+                LOGGER.debug(f"Failed to connect to {self.host} after timeout={timeout}s")
+                raise ConnectionError("SSH connection could not be re-established")
+
+    async def _update_operating_system(self) -> None:
+        """Update the operating system information."""
+        self.operating_system = await self._detect_operating_system()
+
+    async def _update_operating_system_version(self) -> None:
+        """Update the operating system version."""
+        self.operating_system_version = (await self.run_action("operating_system_version")).output
+
+    async def _update_desktop_environment(self) -> None:
+        """Update the desktop environment information."""
+        self.desktop_environment = (await self.run_action("desktop_environment")).output.lower()
+
+    async def _update_windows_entry_grub(self) -> None:
+        """Update Windows entry in GRUB (if applicable)."""
+        self.windows_entry_grub = (await self.run_action("get_windows_entry_grub")).output
+
+    async def _update_monitors_config(self) -> None:
+        """Update monitors configuration."""
+        if self.operating_system == OSType.LINUX:
+            output = (await self.run_action("get_monitors_config")).output
+            self.monitors_config = parse_gnome_monitors_output(output)
+        # TODO: Implement for Windows if needed
+
+    async def _update_audio_config(self) -> None:
+        """Update audio configuration."""
+        speakers_output = (await self.run_action("get_speakers")).output
+        microphones_output = (await self.run_action("get_microphones")).output
+
+        if self.operating_system == OSType.LINUX:
+            self.audio_config = parse_pactl_output(speakers_output, microphones_output)
+        # TODO: Implement for Windows
+
+    async def _update_bluetooth_devices(self) -> None:
+        """Update Bluetooth devices list."""
+        if self.operating_system == OSType.LINUX:
+            self.bluetooth_devices = parse_bluetoothctl(await self.run_action("get_bluetooth_devices"))
+        # TODO: Implement for Windows
 
     async def _detect_operating_system(self) -> OSType:
-        """Detect the operating system of the computer."""
-        uname_result = await self.run_manually("uname")
-        return OSType.LINUX if uname_result.successful() else OSType.WINDOWS
-
-    def is_windows(self) -> bool:
-        """Check if the computer is running Windows."""
-        return self.operating_system == OSType.WINDOWS
-
-    def is_linux(self) -> bool:
-        """Check if the computer is running Linux."""
-        return self.operating_system == OSType.LINUX
+        """Detect the operating system by running a uname command."""
+        result = await self.run_manually("uname")
+        return OSType.LINUX if result.successful() else OSType.WINDOWS
 
     async def is_on(self, timeout: int = 1) -> bool:
         """Check if the computer is on by pinging it."""
@@ -129,20 +118,20 @@ class Computer:
         proc = await asyncio.create_subprocess_exec(
             *ping_cmd,
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
         )
         await proc.communicate()
         return proc.returncode == 0
 
     async def start(self) -> None:
-        """Start the computer."""
+        """Start the computer using Wake-on-LAN."""
         send_magic_packet(self.mac)
 
     async def shutdown(self) -> None:
         """Shutdown the computer."""
         await self.run_action("shutdown")
 
-    async def restart(self, from_os: OSType = None, to_os: OSType = None) -> None:
+    async def restart(self, from_os: Optional[OSType] = None, to_os: Optional[OSType] = None) -> None:
         """Restart the computer."""
         await self.run_action("restart")
 
@@ -151,88 +140,68 @@ class Computer:
         await self.run_action("sleep")
 
     async def set_monitors_config(self, monitors_config: Dict[str, Any]) -> None:
-        """Change the monitors configuration."""
-        if self.is_linux():
-            # TODO: other DE support
-            if self.desktop_environment == 'gnome':
-                await self.run_action("set_monitors_config",
-                                      params={"args": format_gnome_monitors_args(monitors_config)})
+        """Set monitors configuration."""
+        if self.is_linux() and self.desktop_environment == 'gnome':
+            await self.run_action("set_monitors_config", params={"args": format_gnome_monitors_args(monitors_config)})
 
-    async def set_audio_config(self, volume: int | None = None, mute: bool | None = None,
-                               input_device: str | None = None,
-                               output_device: str | None = None) -> None:
-        """Change the audio configuration."""
-        if self.is_linux():
-            # TODO: other DE support
-            if self.desktop_environment == 'gnome':
-                pactl_commands = format_pactl_commands(self.audio_config, volume, mute, input_device, output_device)
-                for command in pactl_commands:
-                    await self.run_action("set_audio_config", params={"args": command})
+    async def set_audio_config(self, volume: Optional[int] = None, mute: Optional[bool] = None,
+                               input_device: Optional[str] = None, output_device: Optional[str] = None) -> None:
+        """Set audio configuration."""
+        if self.is_linux() and self.desktop_environment == 'gnome':
+            pactl_commands = format_pactl_commands(self.audio_config, volume, mute, input_device, output_device)
+            for command in pactl_commands:
+                await self.run_action("set_audio_config", params={"args": command})
 
     async def install_nircmd(self) -> None:
         """Install NirCmd tool (Windows specific)."""
-        await self.run_action("install_nircmd", params={"download_url": "https://www.nirsoft.net/utils/nircmd.zip",
-                                                        "install_path": f"C:\\Users\\{self.username}\\AppData\\Local\\EasyComputerManager"})
+        install_path = f"C:\\Users\\{self.username}\\AppData\\Local\\EasyComputerManager"
+        await self.run_action("install_nircmd", params={
+            "download_url": "https://www.nirsoft.net/utils/nircmd.zip",
+            "install_path": install_path
+        })
 
     async def steam_big_picture(self, action: str) -> None:
-        """Start, stop or exit Steam Big Picture mode."""
+        """Start, stop, or exit Steam Big Picture mode."""
         await self.run_action(f"{action}_steam_big_picture")
 
-    async def run_action(self, id: str, params=None, raise_on_error: bool = None) -> CommandOutput:
-        """Run a predefined command via SSH."""
-        if params is None:
-            params = {}
-        if id not in const.ACTIONS:
+    async def run_action(self, id: str, params: Optional[Dict[str, Any]] = None,
+                         raise_on_error: bool = False) -> CommandOutput:
+        """Run a predefined action via SSH."""
+        params = params or {}
+
+        action = const.ACTIONS.get(id)
+        if not action:
+            LOGGER.error(f"Action {id} not found.")
             return CommandOutput("", 1, "", "Action not found")
 
-        action = const.ACTIONS[id]
+        if not self.operating_system:
+            self.operating_system = await self._detect_operating_system()
 
-        if self.operating_system.lower() in action:
-            raise_on_error = action.get("raise_on_error", raise_on_error)
-
-            os_data = action.get(self.operating_system.lower())
-            if isinstance(os_data, list):
-                commands = os_data
-                req_params = []
-            elif isinstance(os_data, dict):
-                if "command" in os_data or "commands" in os_data:
-                    commands = os_data.get("commands", [os_data.get("command")])
-                    req_params = os_data.get("params", [])
-                    raise_on_error = os_data.get("raise_on_error", raise_on_error)
-                elif self.desktop_environment in os_data:
-                    commands = os_data.get(self.desktop_environment).get("commands", [
-                        os_data.get(self.desktop_environment).get("command")])
-                    req_params = os_data.get(self.desktop_environment).get("params", [])
-                    raise_on_error = os_data.get(self.desktop_environment).get("raise_on_error", raise_on_error)
-                else:
-                    raise ValueError(f"Action {id} not supported for DE: {self.desktop_environment}")
-            else:
-                raise ValueError(f"Action {id} misconfigured/bad format")
-
-            if sorted(req_params) != sorted(params.keys()):
-                raise ValueError(f"Invalid/missing parameters for action: {id}")
-
-            command_result = None
-            for command in commands:
-                for param, value in params.items():
-                    command = command.replace(f"%{param}%", value)
-
-                command_result = await self.run_manually(command)
-                if command_result.successful():
-                    LOGGER.debug(f"Command successful: {command}")
-                    return command_result
-                else:
-                    LOGGER.debug(f"Command failed (raise: {raise_on_error}) : {command}")
-                    # LOGGER.debug(f"Output: {command_result.output}")
-                    # LOGGER.debug(f"Error: {command_result.error}")
-
-                    if raise_on_error:
-                        raise ValueError(f"Command failed: {command}")
-
-            return command_result
-
-        else:
+        os_commands = action.get(self.operating_system.lower())
+        if not os_commands:
             raise ValueError(f"Action {id} not supported for OS: {self.operating_system}")
+
+        commands = os_commands if isinstance(os_commands, list) else os_commands.get("commands",
+                                                                                     [os_commands.get("command")])
+        required_params = []
+        if "params" in os_commands:
+            required_params = os_commands.get("params", [])
+
+        # Validate parameters
+        if sorted(required_params) != sorted(params.keys()):
+            raise ValueError(f"Invalid/missing parameters for action: {id}")
+
+        for command in commands:
+            for param, value in params.items():
+                command = command.replace(f"%{param}%", str(value))
+
+            result = await self.run_manually(command)
+            if result.successful():
+                return result
+            elif raise_on_error:
+                raise ValueError(f"Command failed: {command}")
+
+        return result
 
     async def run_manually(self, command: str) -> CommandOutput:
         """Run a custom command manually via SSH."""
