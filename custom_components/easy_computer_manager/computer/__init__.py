@@ -34,8 +34,9 @@ class Computer:
 
         self._connection: SSHClient = SSHClient(host, username, password, port)
         asyncio.create_task(self._connection.connect(computer=self))
+        # asyncio.create_task(self.update())
 
-    async def update(self) -> None:
+    async def update(self, state: Optional[bool] = True, timeout: Optional[int] = 2) -> None:
         """Update computer details."""
 
         async def update_operating_system():
@@ -77,11 +78,30 @@ class Computer:
                 # TODO: implement for Windows
                 pass
 
-        # Reconnect if connection is lost and init is already done
-        if self.initialized and not self._connection.is_connection_alive():
-            await self._connection.connect()
+        if not state or not await self.is_on():
+            LOGGER.debug("ECM Computer is off, skipping update")
+            return
+        else:
+            # Wait for connection to be established before updating or give up after timeout
+            for i in range(timeout * 4):
+                if not self._connection.is_connection_alive():
+                    await asyncio.sleep(0.25)
+                else:
+                    break
+            else:
+                # Reconnect if connection is lost and init is already done
+                if self.initialized:
+                    await self._connection.connect()
 
-        if self._connection.is_connection_alive():
+                    if not self._connection.is_connection_alive():
+                        LOGGER.debug(
+                            f"Computer seems ON but the SSH connection is dead (timeout={timeout}s), skipping update")
+                        return
+                else:
+                    LOGGER.debug(
+                        f"Computer seems ON but the SSH connection is dead (timeout={timeout}s), skipping update")
+                    return
+
             await update_operating_system()
             await update_operating_system_version()
             await update_desktop_environment()
@@ -213,6 +233,4 @@ class Computer:
 
     async def run_manually(self, command: str) -> CommandOutput:
         """Run a custom command manually via SSH."""
-        result = await self._connection.execute_command(command)
-
-        return CommandOutput(command, result[0], result[1], result[2])
+        return await self._connection.execute_command(command)

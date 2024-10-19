@@ -13,7 +13,8 @@ async def format_debug_information(computer: 'Computer'):  # importing Computer 
             'username': computer.username,
             'port': computer.port,
             'dualboot': computer.dualboot,
-            'is_on': await computer.is_on()
+            'is_on': await computer.is_on(),
+            'is_connected': computer._connection.is_connection_alive()
         },
         'grub': {
             'windows_entry': computer.windows_entry_grub

@@ -1,8 +1,10 @@
 import asyncio
-import paramiko
 from typing import Optional
 
+import paramiko
+
 from custom_components.easy_computer_manager import LOGGER
+from custom_components.easy_computer_manager.computer import CommandOutput
 
 
 class SSHClient:
@@ -56,15 +58,17 @@ class SSHClient:
             port=self.port
         )
 
-    async def execute_command(self, command: str) -> tuple[int, str, str]:
+    async def execute_command(self, command: str) -> CommandOutput:
         """Execute a command on the SSH server asynchronously."""
         try:
             stdin, stdout, stderr = self._connection.exec_command(command)
             exit_status = stdout.channel.recv_exit_status()
 
-            return exit_status, stdout.read().decode(), stderr.read().decode()
+            return CommandOutput(command, exit_status, stdout.read().decode(), stderr.read().decode())
+
         except (paramiko.SSHException, EOFError) as exc:
             LOGGER.debug(f"Failed to execute command on {self.host}: {exc}")
+            return CommandOutput(command, -1, "", "")
 
     def is_connection_alive(self) -> bool:
         """Check if the connection is still alive asynchronously."""
@@ -75,6 +79,9 @@ class SSHClient:
         try:
             transport = self._connection.get_transport()
             transport.send_ignore()
+
+            self._connection.exec_command('ls', timeout=1)
             return True
-        except EOFError:
+
+        except Exception:
             return False

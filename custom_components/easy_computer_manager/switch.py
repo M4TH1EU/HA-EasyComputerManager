@@ -125,9 +125,6 @@ class ComputerSwitch(SwitchEntity):
     @property
     def device_info(self) -> DeviceInfo | None:
         """Return the device information."""
-        # TODO: remove this?
-        # if self._host is None:
-        #     return None
 
         return DeviceInfo(
             identifiers={(DOMAIN, self.computer.mac)},
@@ -164,7 +161,7 @@ class ComputerSwitch(SwitchEntity):
         """Ping the computer to see if it is online and update the state."""
         self._state = await self.computer.is_on()
 
-        await self.computer.update()
+        await self.computer.update(self._state)
 
         # Update the state attributes and the connection only if the computer is on
         if self._state:
@@ -191,6 +188,7 @@ class ComputerSwitch(SwitchEntity):
 
     async def start_computer_to_windows(self) -> None:
         """(Service Handler) Start the computer to Windows"""
+
         async def wait_task():
             while not self.is_on:
                 await asyncio.sleep(3)
@@ -215,7 +213,7 @@ class ComputerSwitch(SwitchEntity):
 
     async def change_audio_config(self, volume: int | None = None, mute: bool | None = None,
                                   input_device: str | None = None,
-                            output_device: str | None = None) -> None:
+                                  output_device: str | None = None) -> None:
         """(Service Handler) Change the audio configuration using a YAML config file."""
         await self.computer.set_audio_config(volume, mute, input_device, output_device)
 
