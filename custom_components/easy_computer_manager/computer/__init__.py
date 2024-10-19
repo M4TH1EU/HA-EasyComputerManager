@@ -223,6 +223,9 @@ class Computer:
                     return command_result
                 else:
                     LOGGER.debug(f"Command failed (raise: {raise_on_error}) : {command}")
+                    # LOGGER.debug(f"Output: {command_result.output}")
+                    # LOGGER.debug(f"Error: {command_result.error}")
+
                     if raise_on_error:
                         raise ValueError(f"Command failed: {command}")
 

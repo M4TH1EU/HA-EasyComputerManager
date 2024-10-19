@@ -27,23 +27,23 @@ ACTIONS = {
     },
     "shutdown": {
         "windows": ["shutdown /s /t 0", "wmic os where Primary=TRUE call Shutdown"],
-        "linux": ["sudo shutdown -h now", "sudo init 0", "systemctl poweroff"]
+        "linux": ["sudo /sbin/shutdown -h now", "sudo /sbin/init 0", "sudo /usr/bin/systemctl poweroff"]
     },
     "restart": {
         "windows": ["shutdown /r /t 0", "wmic os where Primary=TRUE call Reboot"],
-        "linux": ["sudo shutdown -r now", "sudo init 6", "systemctl reboot"]
+        "linux": ["sudo /sbin/shutdown -r now", "sudo /sbin/init 6", "sudo /usr/bin/systemctl reboot"]
     },
     "sleep": {
         "windows": ["shutdown /h /t 0", "rundll32.exe powrprof.dll,SetSuspendState Sleep"],
-        "linux": ["systemctl suspend", "sudo pm-suspend"]
+        "linux": ["sudo /usr/bin/systemctl suspend", "sudo /usr/sbin/pm-suspend"]
     },
     "get_windows_entry_grub": {
-        "linux": ["sudo cat /etc/grub2.cfg | awk -F \"'\" '/windows/ {print $2}'",
-                  "sudo cat /etc/grub.cfg | awk -F \"'\" '/windows/ {print $2}'"]
+        "linux": ["sudo /usr/bin/cat /etc/grub2.cfg | awk -F \"'\" '/windows/ {print $2}'",
+                  "sudo /usr/bin/cat /etc/grub.cfg | awk -F \"'\" '/windows/ {print $2}'"]
     },
     "set_grub_entry": {
         "linux": {
-            "commands": ["sudo grub-reboot %grub-entry%", "sudo grub2-reboot %grub-entry%"],
+            "commands": ["sudo /usr/sbin/grub-reboot %grub-entry%", "sudo /usr/sbin/grub2-reboot %grub-entry%"],
             "params": ["grub-entry"],
         }
     },

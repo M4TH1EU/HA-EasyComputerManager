@@ -32,7 +32,7 @@ fi
 # Configure sudoers
 print_colored "$COLOR_BLUE" "Configuring sudoers..."
 echo -e "\n# Allow your user to execute specific commands without a password (for EasyComputerManager/HA)" | sudo tee -a /etc/sudoers > /dev/null
-echo "$USER_BEHIND_SUDO ALL=(ALL) NOPASSWD: /sbin/shutdown, /sbin/init, /usr/sbin/pm-suspend, /usr/sbin/grub-reboot, /usr/sbin/grub2-reboot, /usr/bin/cat /etc/grub2.cfg, /usr/bin/cat /etc/grub.cfg" | sudo tee -a /etc/sudoers > /dev/null
+echo "$USER_BEHIND_SUDO ALL=(ALL) NOPASSWD: /sbin/shutdown, /sbin/init, /usr/sbin/pm-suspend, /usr/sbin/grub-reboot, /usr/sbin/grub2-reboot, /usr/bin/cat /etc/grub2.cfg, /usr/bin/cat /etc/grub.cfg, /usr/bin/systemctl poweroff, /usr/bin/systemctl reboot, /usr/bin/systemctl suspend" | sudo tee -a /etc/sudoers > /dev/null
 print_colored "$COLOR_GREEN" "Sudoers file configured successfully."
 
 # Firewall Configuration
