@@ -1,4 +1,2 @@
 wakeonlan~=3.1.0
-homeassistant
-paramiko~=3.5.0
-voluptuous~=0.15.2
+paramiko~=3.5.1
