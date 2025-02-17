@@ -31,6 +31,8 @@ class Computer:
         self.audio_config: Dict[str, Optional[Dict]] = {}
         self.bluetooth_devices: Dict[str, Any] = {}
 
+        self.is_linux = lambda: self.operating_system == OSType.LINUX
+
         self._connection = SSHClient(host, username, password, port)
         asyncio.create_task(self._initialize_connection())
 
